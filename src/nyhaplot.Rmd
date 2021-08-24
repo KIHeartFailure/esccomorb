@@ -1,0 +1,117 @@
+
+```{r barnyhaadmission, fig.cap = "NYHA class at admission by EF and no of comorbidities", cache=cacheon}
+
+bardata <- edata %>%
+  filter(!is.na(num_hsNyha)) %>%
+  mutate(num_hsNyha = factor(num_hsNyha, levels = levels(num_dcNyha), labels = levels(num_dcNyha))) %>%
+  mutate(nocom_cat = forcats::fct_rev(nocom_cat)) %>%
+  group_by(num_Ef_cat, num_hsNyha) %>%
+  count(nocom_cat, .drop = F) %>%
+  mutate(
+    freq = (n / sum(n)) * 100,
+    freq = if_else(is.nan(freq), 0, freq)
+  ) %>%
+  ungroup() %>%
+  mutate(EFnyha = paste(num_Ef_cat, num_hsNyha))
+# EFnyha = factor(EFnyha, levels = paste(rep(levels(edata$num_Ef_cat), each = 4), levels(edata$num_hsNyha))))
+
+ggplot(
+  bardata,
+  aes(x = EFnyha, y = freq, fill = nocom_cat)
+) +
+  geom_col() +
+  # theme(axis.text.x=element_text(angle=90, hjust=1)) ## for checking
+  annotate(geom = "text", x = 1:12, y = -5, label = rep(c("I", "II", "III", "IV"), 3), size = 4) +
+  annotate(geom = "text", x = c(2.5, 6.5, 10.5), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
+  scale_fill_manual("No comorbidities",
+    labels = rev(levels(edata$nocom_cat)),
+    values = rev(global_kicols[1:5])
+  ) +
+  theme_minimal() +
+  ylab("Percent") +
+  theme(
+    # legend.position = "none",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+```
+
+```{r barnyhadischarge, fig.cap = "NYHA class at discharge by EF and no of comorbidities", cache=cacheon}
+
+bardata <- edata %>%
+  filter(!is.na(num_dcNyha)) %>%
+  mutate(nocom_cat = forcats::fct_rev(nocom_cat)) %>%
+  group_by(num_Ef_cat, num_dcNyha) %>%
+  count(nocom_cat, .drop = F) %>%
+  mutate(
+    freq = (n / sum(n)) * 100,
+    freq = if_else(is.nan(freq), 0, freq)
+  ) %>%
+  ungroup() %>%
+  mutate(EFnyha = paste(num_Ef_cat, num_dcNyha))
+# EFnyha = factor(EFnyha, levels = paste(rep(levels(edata$num_Ef_cat), each = 4), levels(edata$num_hsNyha))))
+
+ggplot(
+  bardata,
+  aes(x = EFnyha, y = freq, fill = nocom_cat)
+) +
+  geom_col() +
+  # theme(axis.text.x=element_text(angle=90, hjust=1)) ## for checking
+  annotate(geom = "text", x = 1:12, y = -5, label = rep(c("I", "II", "III", "IV"), 3), size = 4) +
+  annotate(geom = "text", x = c(2.5, 6.5, 10.5), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
+  scale_fill_manual("No comorbidities",
+    labels = rev(levels(edata$nocom_cat)),
+    values = rev(global_kicols[1:5])
+  ) +
+  theme_minimal() +
+  ylab("Percent") +
+  theme(
+    # legend.position = "none",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+```
+
+```{r barnyhachange, fig.cap = "NYHA class improvement by EF and no of comorbidities", cache=cacheon}
+
+bardata <- edata %>%
+  filter(!is.na(decrease_Nyha)) %>%
+  mutate(nocom_cat = forcats::fct_rev(nocom_cat)) %>%
+  group_by(num_Ef_cat, decrease_Nyha) %>%
+  count(nocom_cat, .drop = F) %>%
+  mutate(
+    freq = (n / sum(n)) * 100,
+    freq = if_else(is.nan(freq), 0, freq)
+  ) %>%
+  ungroup() %>%
+  mutate(EFnyha = paste(num_Ef_cat, decrease_Nyha))
+
+ggplot(
+  bardata,
+  aes(x = EFnyha, y = freq, fill = nocom_cat)
+) +
+  geom_col() +
+  # theme(axis.text.x=element_text(angle=90, hjust=1)) ## for checking
+  annotate(geom = "text", x = 1:6, y = -5, label = rep(c("No improvment", "Improvment"), 3), size = 3) +
+  annotate(geom = "text", x = c(1.5, 3.5, 5.5), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
+  scale_fill_manual("No comorbidities",
+    labels = rev(levels(edata$nocom_cat)),
+    values = rev(global_kicols[1:5])
+  ) +
+  theme_minimal() +
+  ylab("Percent") +
+  theme(
+    # legend.position = "none",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.ticks.x = element_blank()
+  )
+```

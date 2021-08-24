@@ -1,0 +1,113 @@
+```{r tab1, cache=cacheon}
+
+tab1func <- function(data, tabname, tabvars, stratavar) {
+  tab <- print(
+    CreateTableOne(
+      vars = tabvars,
+      data = data,
+      strata = stratavar
+    ),
+    smd = FALSE,
+    missing = TRUE,
+    printToggle = FALSE,
+    nonnormal = tabvars,
+    test = TRUE,
+    catDigits = 1,
+    contDigits = 1,
+    explain = FALSE,
+    noSpaces = TRUE
+  )
+  tab <- as_tibble(cbind(var = rownames(tab), tab)) %>%
+    select(-test) %>%
+    select(var, Missing, everything())
+
+  tab <- tab %>%
+    # remove = Yes
+    mutate(across(everything(), str_replace_all, fixed(" = Yes"), ""))
+  # %>%
+  #   # to get labs in place
+  #   mutate(
+  #     var_tmp = str_split(var, " = ", simplify = TRUE)[, 1],
+  #     val_tmp = str_split(var, " = ", simplify = TRUE)[, 2]
+  #   )
+  #
+  # tab <- left_join(tab,
+  #   esclab %>%
+  #     select(variable, label),
+  #   by = c("var_tmp" = "variable")
+  # ) %>%
+  #   mutate(
+  #     Variable = coalesce(label, var_tmp),
+  #     Variable = if_else(val_tmp != "",
+  #       paste0(Variable, " ", val_tmp),
+  #       Variable
+  #     )
+  #   )
+
+  tab <- tab %>%
+    mutate(
+      # so no probs
+      # Variable = sanitize_text(Variable),
+      Variable = sanitize_text(var),
+
+      # space in Latex output (fix this other way?)
+      Variable = sub("  ", ". ", Variable)
+    ) %>%
+    select(Variable, Missing:p)
+
+  colnames(tab) <- sanitize_text(c(
+    "Variable", "Missing (%)", levels(edata %>% pull(!!sym(stratavar))), "p-value"
+  ))
+
+  write.xlsx(tab, paste0("./output/tabs/tab1_", tabname, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
+  footnote(
+    default_kable(tab,
+      font_size = 6,
+      caption = sanitize_text(tabname),
+      longtable = TRUE,
+      escape = FALSE
+    ) %>%
+      landscape(),
+    general = c(
+      "Categorical variables are presented with n (%) and tested with chi-square test and continuous variables with median [q1-q3] and tested with Kruskal-Wallis test."
+    )
+  )
+}
+```
+
+```{r tab1all, cache=cacheon, dependson="tab1"}
+tab1func(data = edata, tabname = "Baseline characteristics by EF (all)", tabvars = tabvars, stratavar = "num_Ef_cat")
+```
+
+\clearpage
+
+```{r tab1surv, cache=cacheon, dependson="tab1"}
+tab1func(
+  data = edata %>% filter(survpop),
+  tabname = "Baseline characteristics by EF (long-term outcome population)",
+  tabvars = tabvars, stratavar = "num_Ef_cat"
+)
+```
+
+\clearpage
+
+```{r tab1allnc, cache=cacheon, dependson="tab1"}
+tab1func(
+  data = edata,
+  tabname = "Baseline characteristics by no of comorbs (all)",
+  tabvars = tabvars,
+  stratavar = "nocom_cat"
+)
+```
+
+\clearpage
+
+```{r tab1survnc, cache=cacheon, dependson="tab1"}
+tab1func(
+  data = edata %>% filter(survpop),
+  tabname = "Baseline characteristics by no of comorbs (long-term outcome population)",
+  tabvars = tabvars,
+  stratavar = "nocom_cat"
+)
+```

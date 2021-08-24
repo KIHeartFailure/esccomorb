@@ -1,0 +1,170 @@
+```{r outforestef, cache=cacheon}
+tabforest <- function(data, outtime, outvar, outval = 1) {
+  levs <- levels(edata$nocom_cat)
+  levsef <- levels(edata$num_Ef_cat)
+
+  out <- data.frame(matrix(NA, ncol = 8, nrow = length(levs) * 3 + 1))
+
+  out[, 2] <- c(NA, rep(levs, 3))
+
+  colnames(out) <- c("EF", "No comorbs", "hrci", "p", "loghr", "lci", "uci", "pint")
+
+  for (i in seq_along(levsef)) {
+    out[i + 1 + ((i - 1) * (length(levs) - 1)), 1] <- levsef[i]
+
+    mod <- coxme::coxme(formula(paste0(
+      "Surv(", outtime, ",", outvar, " == '", outval, "') ~ nocom_cat * relevel(num_Ef_cat, ref = '", levsef[i], "') + ",
+      paste0(modvars, collapse = "+"), " + (1 | num_nation)"
+    )),
+    data = data
+    )
+
+    se <- sqrt(diag(vcov(mod)))
+
+    rownos <- 1:4
+    colplace <- (i + 1 + ((i - 1) * (length(levs) - 1))):(1 + (i * length(levs)))
+    out[colplace, 3] <- c(
+      "ref",
+      paste0(
+        fn(exp(mod$coefficients[rownos]), 1),
+        " (",
+        fn(exp(mod$coefficients[rownos] - global_z05 * se[rownos]), 1),
+        "-",
+        fn(exp(mod$coefficients[rownos] + global_z05 * se[rownos]), 1),
+        ")"
+      )
+    )
+    out[colplace, 4] <- c(NA, fn((1 - pnorm(abs(mod$coeff[rownos] / se[rownos]))) * 2, dig = 3, p = TRUE))
+
+    out[colplace, 5] <- c(NA, mod$coefficients[rownos])
+
+    out[colplace, 6] <- c(NA, mod$coefficients[rownos] - global_z05 * se[rownos])
+
+    out[colplace, 7] <- c(NA, mod$coefficients[rownos] + global_z05 * se[rownos])
+
+    if (i == 1) {
+      pint <- car::Anova(mod, type = "III")
+      out[1, 8] <- fn(last(pint[, "Pr(>Chisq)"]), dig = 3, p = TRUE)
+    }
+  }
+  return(out)
+}
+```
+
+```{r outforestefplot, cache=cacheon, dependson="outforestsub"}
+plotforest <- function(forestdata) {
+  cextext <- 1
+
+  minmy <- round(exp(min(forestdata$lci, na.rm = T)), 1)
+  maxmy <- round(exp(max(forestdata$uci, na.rm = T)), 1)
+
+  # c(bottom, left, top, right)
+  par(mar = c(4, 17, 1, 1) + 0.2)
+
+
+  plot(rev(forestdata$loghr), 1:nrow(forestdata),
+    cex = 1.5,
+    xlim = c(
+      log(minmy),
+      log(maxmy)
+    ),
+    xlab = "HR (95% CI)",
+    ylim = c(1, nrow(forestdata) + .4),
+    axes = FALSE,
+    ylab = NA,
+    main = NA,
+    type = "p",
+    pch = 22,
+    bg = global_kicols[1],
+    col = global_kicols[1]
+  )
+
+  for (i in 1:nrow(forestdata)) {
+    if (!is.na(rev(forestdata$lci)[i])) {
+      matplot(c(rev(forestdata$lci)[i], rev(forestdata$uci)[i]), c(i, i),
+        type = "l", add = TRUE, col = global_kicols[1], cex = 1
+      )
+    }
+  }
+
+  matplot(c(log(1), log(1)), c(-1, nrow(forestdata)), type = "l", lwd = 1, lty = 3, add = TRUE, col = 1)
+
+  axismy <- seq(minmy, maxmy, 0.1)
+  axismy2 <- axismy
+  axismy2[!axismy %in% c(minmy, maxmy)] <- NA
+
+  axis(1,
+    cex.axis = cextext, at = log(axismy),
+    labels = axismy2
+  )
+  axis(1,
+    cex.axis = cextext, at = log(1),
+    labels = 1
+  )
+
+  axis(2,
+    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
+    labels = c(rev(forestdata$EF), "EF"),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 16, hadj = 0
+  )
+
+  axis(2,
+    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
+    labels = c(rev(forestdata$`No comorbs`), "No"),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 11.5, hadj = 0
+  )
+
+  axis(2,
+    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
+    labels = c(rev(forestdata$hrci), "HR (95% CI)"),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 7, hadj = 0.5
+  )
+
+  axis(2,
+    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
+    labels = c(rev(forestdata$p), "P"),
+    cex.axis = cextext, tick = FALSE, las = 1, line = 2.5, hadj = 0.5
+  )
+
+  axis(2,
+    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
+    labels = c(rev(forestdata$pint), "P interaktion"),
+    cex.axis = cextext, tick = FALSE, las = 1, line = -0.5, hadj = 0.5
+  )
+}
+```
+
+```{r outforestdeath, cache=cacheon, dependson=c("outforestef", "outforestefplot"), fig.cap="Association between no of non-cardiac comorbidities and all-cause mortality"}
+deathforest <- tabforest(
+  data = edata %>% filter(survpop), outvar = "out_death", outtime = "outtime_death"
+)
+plotforest(forestdata = deathforest)
+```
+
+```{r outforesthosp, cache=cacheon, dependson=c("outforestef", "outforestefplot"), fig.cap="Association between no of non-cardiac comorbidities and all-cause hospitalization"}
+hospforest <- tabforest(
+  data = edata %>% filter(survpop), outvar = "out_hosp", outtime = "outtime_hosp"
+)
+plotforest(forestdata = hospforest)
+```
+
+```{r outforestdeathcv, cache=cacheon, dependson=c("outforestef", "outforestefplot"), fig.cap="Association between no of non-cardiac comorbidities and CV mortality"}
+cvdeathforest <- tabforest(
+  data = edata %>% filter(survpop), outvar = "out_deathcv", outtime = "outtime_death"
+)
+plotforest(forestdata = cvdeathforest)
+```
+
+```{r outforesthosphf, cache=cacheon, dependson=c("outforestef", "outforestefplot"), fig.cap="Association between no of non-cardiac comorbidities and HF hospitalization"}
+hfhospforest <- tabforest(
+  data = edata %>% filter(survpop), outvar = "out_hosphf", outtime = "outtime_hosphf"
+)
+plotforest(forestdata = hfhospforest)
+```
+
+```{r outforestdeathhosphf, cache=cacheon, dependson=c("outforestef", "outforestefplot"), fig.cap="Association between no of non-cardiac comorbidities and all-cause mortality/HF hospitalization"}
+deathhfhospforest <- tabforest(
+  data = edata %>% filter(survpop), outvar = "out_deathhosphf", outtime = "outtime_hosphf"
+)
+plotforest(forestdata = deathhfhospforest)
+```

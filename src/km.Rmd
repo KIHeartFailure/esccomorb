@@ -1,0 +1,281 @@
+```{r km, cache=cacheon}
+
+kmfunc <- function(data = edata %>% filter(survpop), time, event, eventcr = NULL, eventname, yposplus = rep(0, 5)) {
+  fits <- survfit(formula(paste0("Surv(", time, ",", event, "== 1) ~ nocom_cat")),
+    data = data
+  ) # needed also for cuminc for n at risk
+
+  if (!is.null(eventcr)) {
+    fit <- cuminc(
+      ftime = data %>% pull(!!sym(time)),
+      fstatus = data %>% pull(!!sym(eventcr)),
+      cencode = 0,
+      group = data %>% pull(nocom_cat)
+    )
+
+    # c(bottom, left, top, right)
+    par(mar = c(4, 4, 1, 1) + 0.1)
+
+    plot(fit[1:5],
+      ylab = eventname,
+      col = global_kicols,
+      wh = c(1110, 1110),
+      xlim = c(0, 12 * 30),
+      ylim = c(0, 0.5),
+      xlab = "Months",
+      axes = F,
+      lwd = 3,
+      lty = 1:5,
+      xaxs = "i", yaxs = "i"
+    )
+  } else {
+    # c(bottom, left, top, right)
+    par(mar = c(4, 4, 1, 1) + 0.1)
+    plots <- plot(fits,
+      fun = "event",
+      ylab = eventname,
+      xscale = 30,
+      yscale = 100,
+      col = global_kicols,
+      mark.time = FALSE,
+      bty = "n",
+      xlim = c(0, 12 * 30),
+      ylim = c(0, .5),
+      xlab = "Months",
+      axes = F,
+      lwd = 3,
+      lty = 1:5,
+      xaxs = "i", yaxs = "i"
+    )
+  }
+
+  axis(2, seq(0, 0.5, 0.1), seq(0, 50, 10), las = 2)
+  axis(1, at = seq(0, 12, 1) * 30, seq(0, 12, 1))
+
+  if (!is.null(eventcr)) {
+    ypos <- timepoints(fit[1:5], 364)$est
+  } else {
+    ypos <- 1 - summary(fits, 364)$surv
+  }
+
+  ylabs <- bind_cols(
+    ypos = c(ypos + yposplus),
+    ytext = levels(edata %>% pull(nocom_cat))
+  )
+
+  mtext(
+    side = 4,
+    line = .2,
+    at = ylabs$ypos,
+    ylabs$ytext,
+    las = 1
+  )
+}
+```
+
+```{r kmdeath, fig.cap="All-cause mortality", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "outtime_death",
+  event = "out_death",
+  eventname = "All-cause mortality (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmhosp, fig.cap="All-cause hospitalization", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "outtime_hosp",
+  event = "out_hosp",
+  eventcr = "out_hosp_cr",
+  eventname = "First all-cause hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmdeathcv, fig.cap="CV mortality", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "outtime_death",
+  event = "out_deathcv",
+  eventcr = "out_deathcv_cr",
+  eventname = "CV mortality (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmhosphf, fig.cap="HF hospitalization", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "outtime_hosphf",
+  event = "out_hosphf",
+  eventcr = "out_hosphf_cr",
+  eventname = "First HF hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmdeathhosphf, fig.cap="All-cause mortality/HF hospitalization", cache=cacheon, dependson="km"}
+kmfunc(
+  time = "outtime_hosphf",
+  event = "out_deathhosphf",
+  eventname = "All-cause mortality/first HF hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmdeathref, fig.cap="All-cause mortality - rEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%"),
+  time = "outtime_death",
+  event = "out_death",
+  eventname = "All-cause mortality (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmhospref, fig.cap="All-cause hospitalization - rEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%"),
+  time = "outtime_hosp",
+  event = "out_hosp",
+  eventcr = "out_hosp_cr",
+  eventname = "First all-cause hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmdeathcvref, fig.cap="CV mortality - rEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%"),
+  time = "outtime_death",
+  event = "out_deathcv",
+  eventcr = "out_deathcv_cr",
+  eventname = "CV mortality (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmhosphfref, fig.cap="HF hospitalization - rEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%"),
+  time = "outtime_hosphf",
+  event = "out_hosphf",
+  eventcr = "out_hosphf_cr",
+  eventname = "First HF hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmdeathhosphfref, fig.cap="All-cause mortality/HF hospitalization - rEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%"),
+  time = "outtime_hosphf",
+  event = "out_deathhosphf",
+  eventname = "All-cause mortality/first HF hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmdeathmref, fig.cap="All-cause mortality - mrEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == "41-49%"),
+  time = "outtime_death",
+  event = "out_death",
+  eventname = "All-cause mortality (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmhospmref, fig.cap="All-cause hospitalization - mrEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == "41-49%"),
+  time = "outtime_hosp",
+  event = "out_hosp",
+  eventcr = "out_hosp_cr",
+  eventname = "First all-cause hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmdeathcvmref, fig.cap="CV mortality - mrEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == "41-49%"),
+  time = "outtime_death",
+  event = "out_deathcv",
+  eventcr = "out_deathcv_cr",
+  eventname = "CV mortality (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmhosphfmref, fig.cap="HF hospitalization - mrEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == "41-49%"),
+  time = "outtime_hosphf",
+  event = "out_hosphf",
+  eventcr = "out_hosphf_cr",
+  eventname = "First HF hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmdeathhosphfmref, fig.cap="All-cause mortality/HF hospitalization - mrEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == "41-49%"),
+  time = "outtime_hosphf",
+  event = "out_deathhosphf",
+  eventname = "All-cause mortality/first HF hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmdeathpef, fig.cap="All-cause mortality - pEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == ">=50%"),
+  time = "outtime_death",
+  event = "out_death",
+  eventname = "All-cause mortality (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmhosppef, fig.cap="All-cause hospitalization - pEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == ">=50%"),
+  time = "outtime_hosp",
+  event = "out_hosp",
+  eventcr = "out_hosp_cr",
+  eventname = "First all-cause hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmdeathcvpef, fig.cap="CV mortality - pEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == ">=50%"),
+  time = "outtime_death",
+  event = "out_deathcv",
+  eventcr = "out_deathcv_cr",
+  eventname = "CV mortality (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmhosphfpef, fig.cap="HF hospitalization - pEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == ">=50%"),
+  time = "outtime_hosphf",
+  event = "out_hosphf",
+  eventcr = "out_hosphf_cr",
+  eventname = "First HF hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```
+
+```{r kmdeathhosphfpef, fig.cap="All-cause mortality/HF hospitalization - pEF", cache=cacheon, dependson="km"}
+kmfunc(
+  data = edata %>% filter(survpop & num_Ef_cat == ">=50%"),
+  time = "outtime_hosphf",
+  event = "out_deathhosphf",
+  eventname = "All-cause mortality/first HF hospitalization (%)",
+  yposplus = c(0, 0, 0, 0, 0)
+)
+```

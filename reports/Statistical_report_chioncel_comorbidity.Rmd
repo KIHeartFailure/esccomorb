@@ -1,0 +1,220 @@
+---
+title: 'Statistical report: Prognostic impact of non-cardiac comorbidity burden in patients hospitalized for AHF and stratified by EF categories: rEF, mrEF and pEF'
+subtitle: 'DRAFT'
+author: 'Statistician: Lina Benson'
+  
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 7
+    number_sections: yes
+link-citations: yes
+bibliography: references.bib
+nocite: '@*'
+urlcolor: blue
+linkcolor: black
+header-includes:
+   - \usepackage{draftwatermark}
+---
+
+\newpage 
+\tableofcontents 
+\listoftables
+\listoffigures
+\newpage
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE, include = TRUE, comment = "",
+  warning = FALSE, message = FALSE, fig.pos = "H",
+  fig.path = "../output/figs/"
+)
+options(knitr.kable.NA = "")
+```
+
+```{r adjust_directory_if_needed, include=FALSE}
+# Uncomment lines below if rmd file is placed in a subdirectory
+knitr::opts_knit$set(root.dir = normalizePath("../"))
+```
+
+```{r load_project}
+# 1. Set options in config/global.dcf
+# 2. Load packages listed in config/global.dcf
+# 3. Import functions and code in lib directory
+
+ProjectTemplate::reload.project()
+
+cacheon <- TRUE
+```             
+
+# Data handling
+
+## Data source
+
+hf3_lt_fu_data_soladis_jan19.sas7bdat (from the folder DATABASE_ANALYZED.ZIP). 
+
+## Inclusion/exclusion criteria
+
+```{r flow}
+default_kable(flow, caption = "Flowchart")
+```
+
+First patient in: `r min(edata$num_dmVisitdt)` and last patient in: `r max(edata$num_dmVisitdt)`. 
+
+The median age (IQR) is `r edata %>% summarise(med = fn(median(num_age, na.rm = T), dig = 1),
+                                             q1 = fn(quantile(num_age, na.rm = T, probs = 0.25), dig = 1),
+                                             q3 = fn(quantile(num_age, na.rm = T, probs = 0.75), dig = 1)) %>%
+                                   mutate(out = paste0(med, " (", q1, "-", q3, ")")) %>%
+                                   pull(out)` and 
+`r edata %>% count(num_dmgender) %>%
+  mutate(perc = fn(n / sum(n) * 100, 1)) %>%
+  filter(num_dmgender == "Female") %>%
+  pull(perc)`% females.  
+
+# Statistical analysis 
+
+## General
+
+All analyses were performed using `r sessionInfo()$R.version$version.string` [@r]. 
+The level of significance is set to 5%, two-sided. No adjustment for multiple 
+comparisons were made and therefore the results should be viewed with some care.
+
+EF is defined as EF by Echo-Doppler recorded at discharge, or if this is missing, Last known EF recorded in Characteristics. 
+
+Number of non-cardiac comorbidities consist of the following: `r paste(comorbs, collapse = ", ")`
+
+## Missing data
+
+For patients with missing information on the date of hospitalisation, 
+the time to hospitalisation was imputed with half the time to last
+follow-up. Further, times to hospitalisation that were larger than time 
+to death or last follow-up were set to death or last follow-up. 
+
+Might do this: Missing data for the covariates included in the models was imputed with multiple 
+imputation using mice [@mice] for 10 datasets and 10 iterations. 
+Variables included in the imputation model are the same as are 
+included in the cox regression. Death was included as the Nelson-Aalen estimator 
+in the imputation model. However, will depend on what variables are adjusted for in the models. 
+Currently Age, sex, SBP at admission, ischemic aetiology, atrial fibrillation, history of MI and there is 
+ very little missing for these so not really justifiable to do mi. 
+
+## Baseline characteristics
+
+```{r, child = "../src/tab1.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+## Comorbs/NYHA
+
+```{r, child = "../src/nyhaplot.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+## Outcome analysis
+
+The following outcomes are considered: 
+
+- NYHA at admission
+- NYHA at discharge
+- Change in NYHA
+- In-hospital mortality
+- Length of stay
+- 1 year (approx) All-cause mortality
+- 1 year (approx) All-cause hospitalisations
+- 1 year (approx) CV mortality
+- 1 year (approx) HF hospitalisations
+- 1 year (approx) All-cause mortality/HF hospitalisations
+
+For all models adjustment is performed for `r paste(modvars, collapse = ", ")`. 
+
+For the binomial outcomes (decrease in NYHA and in-hospital mortality) 
+a generalized linear mixed-effects model (GMMM) with a logit link and a random effect for country was used. 
+
+For the ordinal outcomes (NYHA class at admission and discharge) 
+a Cumulative Link Mixed Model with a random effect for country was used. 
+
+Length of stay is modelled using a generalized linear mixed-effects model 
+(GLMM) for the negative binomial family with a random effect for country. 
+(I am assuming LOS is lenght of stay at the index hosp, not during follow-up???)
+
+The long-term outcomes are presented with the Kaplan-Meier curves 
+(for outcomes with all-cause death) or cumulative incidence curves (with death as a competing risk). 
+Cox proportional hazards regressions with a frailty term for country were 
+used to model the time to first event analysis. 
+
+As a consistency analysis the long-term outcomes (not all-cause death)
+was modelled using a sub-distributional hazards model [@fg] where death was treated as a competing event. 
+
+The long-term outcomes were also modelled in a similar manner as above but with 
+an interaction term for EF, thereby enabling separate estimates for each EF group, and presented in a Forest plot. 
+The models were adjusted for the same variables as above. 
+
+Time is from date of discharge, or if this is missing, date of admission and 
+censored at death not defined as an event or follow-up.  
+
+The median (min-max) follow-up for the long-term outcomes is 
+`r edata %>% filter(survpop) %>% summarise(med = fn(median(outtime_death / 365.25 * 12), dig = 1),
+                                             min = fn(min(outtime_death / 365.25 * 12), dig = 1),
+                                             max = fn(max(outtime_death / 365.25 * 12), dig = 1)) %>%
+                                   mutate(out = paste0(med, " (", min, "-", max, ")")) %>%
+                                   pull(out)` months for a total of 
+                                   `r edata %>% filter(survpop) %>% 
+                                   summarise(sumpy = fn(sum(outtime_death) / 365.25, dig = 0)) %>%
+                                   pull(sumpy)` patient-years of follow-up.
+                                   
+### Assumptions
+
+The proportional hazards assumption was investigated using the scaled Schoenfeld 
+residuals (cox.zph in [@survival-package]) for the primary outcome. 
+Possible outliers were visually inspected by plotting the dfbetas. 
+=> XXXX. 
+
+\clearpage
+\newpage
+                                   
+```{r, child = "../src/outtab.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+```{r, child = "../src/outforestef.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+```{r, child = "../src/km.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+# Reproducibility
+
+## R session information {#sessioninfo}
+
+```{r sessinfo}
+sessionInfo()
+```
+
+## R code
+
+The R code for all data handling and statistical analyses are found: 
+https://github.com/KIHeartFailure/esccomorb. On publication
+the repository will be made public so as to 
+link to it from the resulting article for increased transparency and code sharing.
+No data or output is stored in the repository. 
+
+# References
