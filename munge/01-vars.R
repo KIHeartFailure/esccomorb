@@ -131,10 +131,35 @@ tabvars <- c(
   "num_dcPci",
   "num_dcEps",
   "num_dcTransab",
-  "num_dcCrt",
+  "dcrt",
   "num_dcIcd",
   "num_dcRhCath",
   "num_dcIapb"
+)
+
+medvars <- c(
+  "num_mdBBp",
+  "BBdosetarget_admission",
+  "num_mdBBd",
+  "BBdosetarget_discharge",
+  "RASi_admission",
+  "RASidosetarget_admission",
+  "RASi_discharge",
+  "RASidosetarget_discharge",
+  "num_mdARNIp",
+  "num_mdARNId",
+  "num_mdALp",
+  "ALdosetarget_admission",
+  "num_mdALd",
+  "ALdosetarget_discharge",
+  "mdloopDiur_admission",
+  "mdloopDiur_discharge",
+  "num_mdDigop",
+  "num_mdDigod",
+  "num_mdACp",
+  "num_mdACd",
+  "num_mdIvabp",
+  "num_mdIvabd"
 )
 
 modvars <- c(

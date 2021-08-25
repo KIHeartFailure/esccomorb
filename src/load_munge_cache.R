@@ -13,6 +13,7 @@ ProjectTemplate::reload.project(
 ProjectTemplate::cache("flow")
 ProjectTemplate::cache("edata")
 ProjectTemplate::cache("tabvars")
+ProjectTemplate::cache("medvars")
 ProjectTemplate::cache("modvars")
 ProjectTemplate::cache("comorbs")
 # ProjectTemplate::cache("imp.org")

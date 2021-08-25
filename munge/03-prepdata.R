@@ -1,5 +1,14 @@
 edata <- edata %>%
   mutate(
+    # something odd with crt in tab 1 printout this fixes it (together w dropping org var)
+    dcrt = factor(case_when(
+      is.na(num_dcCrt) ~ NA_real_,
+      num_dcCrt == "Not indicated" ~ 1,
+      num_dcCrt == "Indicated" ~ 2,
+      num_dcCrt == "Already implanted" ~ 3
+    ),
+    levels = 1:3, labels = c("Not indicated", "Indicated", "Already implanted")
+    ),
     num_Ef = coalesce(num_dcEf, num_dmEflp),
     num_Ef_cat = factor(case_when(
       is.na(num_Ef) ~ NA_real_,

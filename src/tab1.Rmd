@@ -1,16 +1,16 @@
 ```{r tab1, cache=cacheon}
 
-tab1func <- function(data, tabname, tabvars, stratavar) {
+tab1func <- function(data, tabname, vars, stratavar) {
   tab <- print(
     CreateTableOne(
-      vars = tabvars,
+      vars = vars,
       data = data,
       strata = stratavar
     ),
     smd = FALSE,
     missing = TRUE,
     printToggle = FALSE,
-    nonnormal = tabvars,
+    nonnormal = vars,
     test = TRUE,
     catDigits = 1,
     contDigits = 1,
@@ -44,6 +44,8 @@ tab1func <- function(data, tabname, tabvars, stratavar) {
   #     )
   #   )
 
+  write.xlsx(tab %>% select(var, Missing:p), paste0("./output/tabs/tab1_", tabname, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
+
   tab <- tab %>%
     mutate(
       # so no probs
@@ -58,8 +60,6 @@ tab1func <- function(data, tabname, tabvars, stratavar) {
   colnames(tab) <- sanitize_text(c(
     "Variable", "Missing (%)", levels(edata %>% pull(!!sym(stratavar))), "p-value"
   ))
-
-  write.xlsx(tab, paste0("./output/tabs/tab1_", tabname, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
 
   footnote(
     default_kable(tab,
@@ -77,7 +77,7 @@ tab1func <- function(data, tabname, tabvars, stratavar) {
 ```
 
 ```{r tab1all, cache=cacheon, dependson="tab1"}
-tab1func(data = edata, tabname = "Baseline characteristics by EF (all)", tabvars = tabvars, stratavar = "num_Ef_cat")
+tab1func(data = edata, tabname = "Baseline characteristics by EF (all)", vars = tabvars, stratavar = "num_Ef_cat")
 ```
 
 \clearpage
@@ -86,7 +86,7 @@ tab1func(data = edata, tabname = "Baseline characteristics by EF (all)", tabvars
 tab1func(
   data = edata %>% filter(survpop),
   tabname = "Baseline characteristics by EF (long-term outcome population)",
-  tabvars = tabvars, stratavar = "num_Ef_cat"
+  vars = tabvars, stratavar = "num_Ef_cat"
 )
 ```
 
@@ -96,7 +96,7 @@ tab1func(
 tab1func(
   data = edata,
   tabname = "Baseline characteristics by no of comorbs (all)",
-  tabvars = tabvars,
+  vars = tabvars,
   stratavar = "nocom_cat"
 )
 ```
@@ -107,7 +107,29 @@ tab1func(
 tab1func(
   data = edata %>% filter(survpop),
   tabname = "Baseline characteristics by no of comorbs (long-term outcome population)",
-  tabvars = tabvars,
+  vars = tabvars,
+  stratavar = "nocom_cat"
+)
+```
+
+\clearpage
+
+```{r tab1allncref, cache=cacheon, dependson="tab1"}
+tab1func(
+  data = edata %>% filter(num_Ef_cat == "<41%"),
+  tabname = "Medications by no of comorbs (all) - rEF",
+  vars = medvars,
+  stratavar = "nocom_cat"
+)
+```
+
+\clearpage
+
+```{r tab1survncref, cache=cacheon, dependson="tab1"}
+tab1func(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%"),
+  tabname = "Medications by no of comorbs (long-term outcome population) - rEF",
+  vars = medvars,
   stratavar = "nocom_cat"
 )
 ```
