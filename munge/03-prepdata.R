@@ -54,12 +54,17 @@ edata <- edata %>%
       num_dmDev %in% c("PM") ~ 2,
       num_dmDev %in% c("CRT-P", "CRT-D", "ICD") ~ 3
     ), levels = 1:3, labels = c("No device", "PM", "CT/ICD")),
-    systemic_congestion = case_when(
+    dcsystemic_congestion = case_when(
       is.na(num_dcJvp) | is.na(num_dcHep) | is.na(num_dcOed) | is.na(num_dcS3) ~ NA_character_,
       num_dcJvp == "Yes" | num_dcHep == "Yes" | num_dcOed == "Yes" | num_dcS3 == "Yes" ~ "Yes",
       TRUE ~ "No"
     ),
-    pulm_congestion = if_else(num_dcXrn == "Yes", "No", as.character(num_dcXpu)),
+    hssystemic_congestion = case_when(
+      is.na(num_hsJvp) | is.na(num_hsHep) | is.na(num_hsOed) | is.na(num_hsS3) ~ NA_character_,
+      num_hsJvp == "Yes" | num_hsHep == "Yes" | num_hsOed == "Yes" | num_hsS3 == "Yes" ~ "Yes",
+      TRUE ~ "No"
+    ),
+    # pulm_congestion = if_else(num_dcXrn == "Yes", "No", as.character(num_dcXpu)),
     tmp_dcnyha = case_when(
       num_dcNyha == "NYHA I" ~ 1,
       num_dcNyha == "NYHA II" ~ 2,
@@ -275,11 +280,6 @@ edata <- edata %>%
   mutate_if(is.character, as.factor) %>%
   mutate(num_nation = as.character(num_nation)) %>%
   select(-starts_with("tmp_"))
-
-comorbs <- c(
-  "num_dmDiab_c1", "num_dmCopd", "num_dmHyChol", "num_dmHepa", "num_dmDis", "num_dmApn", "num_dmPark", "num_dmDepr",
-  "num_dmStroke", "num_dmPvd", "num_dmRheu", "anemia"
-)
 
 edata <- edata %>%
   mutate(

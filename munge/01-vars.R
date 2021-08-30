@@ -32,10 +32,6 @@ tabvars <- c(
   "num_dmDev_cat",
   "nocom_cat",
   "nocom",
-  "num_delayhosp",
-  "num_hsNyha",
-  "num_dcNyha",
-  "decrease_Nyha",
   "num_dmBp1",
   "num_dcBp1",
   "change_Bp1",
@@ -52,8 +48,10 @@ tabvars <- c(
   "num_dcWeight",
   "change_Weight",
   "changepercent_Weight",
-  "pulm_congestion",
-  "systemic_congestion",
+  "num_hsRal",
+  "num_dcRal",
+  "hssystemic_congestion",
+  "dcsystemic_congestion",
   "num_hsHosPresCli",
 
   # ECG
@@ -169,4 +167,19 @@ modvars <- c(
   "num_dmBp1",
   "num_dmMi",
   "num_dmAfib_c1"
+)
+
+comorbs <- c(
+  "num_dmDiab_c1",
+  "num_dmCopd",
+  "num_dmHyChol",
+  "num_dmHepa",
+  "num_dmDis",
+  "num_dmApn",
+  "num_dmPark",
+  "num_dmDepr",
+  "num_dmStroke",
+  "num_dmPvd",
+  "num_dmRheu",
+  "anemia"
 )

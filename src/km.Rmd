@@ -14,42 +14,42 @@ kmfunc <- function(data = edata %>% filter(survpop), time, event, eventcr = NULL
     )
 
     # c(bottom, left, top, right)
-    par(mar = c(4, 4, 1, 1) + 0.1)
+    par(mar = c(9, 4.5, 1, 1) + 0.1)
 
     plot(fit[1:5],
       ylab = eventname,
-      col = global_kicols,
+      col = c(rev(global_kicols[1:4]), 1),
       wh = c(1110, 1110),
       xlim = c(0, 12 * 30),
-      ylim = c(0, 0.5),
+      ylim = c(0, 1),
       xlab = "Months",
       axes = F,
       lwd = 3,
-      lty = 1:5,
+      lty = rev(1:5),
       xaxs = "i", yaxs = "i"
     )
   } else {
     # c(bottom, left, top, right)
-    par(mar = c(4, 4, 1, 1) + 0.1)
+    par(mar = c(9, 4.5, 1, 1) + 0.1)
     plots <- plot(fits,
       fun = "event",
       ylab = eventname,
       xscale = 30,
       yscale = 100,
-      col = global_kicols,
+      col = c(rev(global_kicols[1:4]), 1),
       mark.time = FALSE,
       bty = "n",
       xlim = c(0, 12 * 30),
-      ylim = c(0, .5),
+      ylim = c(0, 1),
       xlab = "Months",
       axes = F,
       lwd = 3,
-      lty = 1:5,
+      lty = rev(1:5),
       xaxs = "i", yaxs = "i"
     )
   }
 
-  axis(2, seq(0, 0.5, 0.1), seq(0, 50, 10), las = 2)
+  axis(2, seq(0, 1, 0.1), seq(0, 100, 10), las = 2)
   axis(1, at = seq(0, 12, 1) * 30, seq(0, 12, 1))
 
   if (!is.null(eventcr)) {
@@ -70,6 +70,22 @@ kmfunc <- function(data = edata %>% filter(survpop), time, event, eventcr = NULL
     ylabs$ytext,
     las = 1
   )
+
+  mtext("No. at risk", side = 1, line = 3, at = -51, adj = 0, cex = 1)
+
+  mtext("0", side = 1, line = 4, at = -40, adj = 0, cex = 1)
+  mtext("1", side = 1, line = 5, at = -40, adj = 0, cex = 1)
+  mtext("2", side = 1, line = 6, at = -40, adj = 0, cex = 1)
+  mtext("3", side = 1, line = 7, at = -40, adj = 0, cex = 1)
+  mtext("4+", side = 1, line = 8, at = -40, adj = 0, cex = 1)
+
+  nrisk <- summary(fits, seq(0, 12, 2) * 30)$n.risk
+
+  axis(1, at = seq(0, 12, 2) * 30, labels = nrisk[1:(7 * 1)], line = 3, tick = FALSE, cex.axis = 1)
+  axis(1, at = seq(0, 12, 2) * 30, labels = nrisk[(7 + 1):(7 * 2)], line = 4, tick = FALSE, cex.axis = 1)
+  axis(1, at = seq(0, 12, 2) * 30, labels = nrisk[(7 * 2 + 1):(7 * 3)], line = 5, tick = FALSE, cex.axis = 1)
+  axis(1, at = seq(0, 12, 2) * 30, labels = nrisk[(7 * 3 + 1):(7 * 4)], line = 6, tick = FALSE, cex.axis = 1)
+  axis(1, at = seq(0, 12, 2) * 30, labels = nrisk[(7 * 4 + 1):(7 * 5)], line = 7, tick = FALSE, cex.axis = 1)
 }
 ```
 
@@ -78,7 +94,7 @@ kmfunc(
   time = "outtime_death",
   event = "out_death",
   eventname = "All-cause mortality (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(0, 0, 0, 0, 0.003)
 )
 ```
 
@@ -88,7 +104,7 @@ kmfunc(
   event = "out_hosp",
   eventcr = "out_hosp_cr",
   eventname = "First all-cause hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(-0.007, 0.007, 0, 0, 0)
 )
 ```
 
@@ -98,7 +114,7 @@ kmfunc(
   event = "out_deathcv",
   eventcr = "out_deathcv_cr",
   eventname = "CV mortality (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(0, -0.005, 0.005, -0.01, 0.01)
 )
 ```
 
@@ -127,7 +143,7 @@ kmfunc(
   time = "outtime_death",
   event = "out_death",
   eventname = "All-cause mortality (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(0, -0.005, 0.005, 0, 0)
 )
 ```
 
@@ -138,7 +154,7 @@ kmfunc(
   event = "out_hosp",
   eventcr = "out_hosp_cr",
   eventname = "First all-cause hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(-0.013, 0.013, 0, -0.005, 0.005)
 )
 ```
 
@@ -149,7 +165,7 @@ kmfunc(
   event = "out_deathcv",
   eventcr = "out_deathcv_cr",
   eventname = "CV mortality (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(0, -0.01, 0.01, -0.01, 0.01)
 )
 ```
 
@@ -160,7 +176,7 @@ kmfunc(
   event = "out_hosphf",
   eventcr = "out_hosphf_cr",
   eventname = "First HF hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(-0.01, 0, 0, -0.005, 0.005)
 )
 ```
 
@@ -170,7 +186,7 @@ kmfunc(
   time = "outtime_hosphf",
   event = "out_deathhosphf",
   eventname = "All-cause mortality/first HF hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(0, -0.005, 0.005, 0, 0)
 )
 ```
 
@@ -191,7 +207,7 @@ kmfunc(
   event = "out_hosp",
   eventcr = "out_hosp_cr",
   eventname = "First all-cause hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(-0.01, 0.01, -0.019, 0.019, 0)
 )
 ```
 
@@ -202,7 +218,7 @@ kmfunc(
   event = "out_deathcv",
   eventcr = "out_deathcv_cr",
   eventname = "CV mortality (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(0, -0.01, 0.014, 0, 0)
 )
 ```
 
@@ -213,7 +229,7 @@ kmfunc(
   event = "out_hosphf",
   eventcr = "out_hosphf_cr",
   eventname = "First HF hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(0, 0, -0.01, 0, 0)
 )
 ```
 
@@ -233,7 +249,7 @@ kmfunc(
   time = "outtime_death",
   event = "out_death",
   eventname = "All-cause mortality (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(0, 0, 0, 0, 0.01)
 )
 ```
 
@@ -255,7 +271,7 @@ kmfunc(
   event = "out_deathcv",
   eventcr = "out_deathcv_cr",
   eventname = "CV mortality (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(-0.005, -0.005, -0.005, 0.005, 0.005)
 )
 ```
 
@@ -266,7 +282,7 @@ kmfunc(
   event = "out_hosphf",
   eventcr = "out_hosphf_cr",
   eventname = "First HF hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  yposplus = c(0, 0, -0.005, 0, 0)
 )
 ```
 

@@ -1,0 +1,148 @@
+```{r uniforestmorttab, cache=cacheon}
+tabforestuni <- function(data) {
+  out <- data.frame(matrix(NA, ncol = 6, nrow = length(comorbs)))
+
+  colnames(out) <- c("var", "hrci", "p", "loghr", "lci", "uci")
+
+  for (i in seq_along(comorbs)) {
+    out[i, 1] <- comorbs[i]
+
+    mod <- coxme::coxme(formula(paste0(
+      "Surv(outtime_death, out_death == 1) ~ ", comorbs[i], " + (1 | num_nation)"
+    )),
+    data = data
+    )
+
+    se <- sqrt(diag(vcov(mod)))
+
+    out[i, 2] <-
+      paste0(
+        fn(exp(mod$coefficients[1]), 1),
+        " (",
+        fn(exp(mod$coefficients[1] - global_z05 * se[1]), 1),
+        "-",
+        fn(exp(mod$coefficients[1] + global_z05 * se[1]), 1),
+        ")"
+      )
+    out[i, 3] <- fn((1 - pnorm(abs(mod$coeff[1] / se[1]))) * 2, dig = 3, p = TRUE)
+
+    out[i, 4] <- mod$coefficients[1]
+
+    out[i, 5] <- mod$coefficients[1] - global_z05 * se[1]
+
+    out[i, 6] <- mod$coefficients[1] + global_z05 * se[1]
+  }
+  return(out)
+}
+```
+
+```{r uniforestmortplot, cache=cacheon, dependson="uniforestmorttab"}
+plotforest <- function(forestdata, minmy = NULL, maxmy = NULL) {
+
+  # fix names
+  forestdata <- forestdata %>%
+    mutate(Variable = case_when(
+      var == "num_dmDiab_c1" ~ "Diabetes",
+      var == "num_dmCopd" ~ "COPD",
+      var == "num_dmHyChol" ~ "Kidney dysfunction",
+      var == "num_dmHepa" ~ "Hepatic dysfunction",
+      var == "num_dmDis" ~ "Current malignancy",
+      var == "num_dmApn" ~ "Sleep apnea",
+      var == "num_dmPark" ~ "Parkinson",
+      var == "num_dmDepr" ~ "Depression",
+      var == "num_dmStroke" ~ "Stroke/TIA",
+      var == "num_dmPvd" ~ "PVD",
+      var == "num_dmRheu" ~ "Rheumatoid arthritis",
+      var == "anemia" ~ "Anemia"
+    )) %>%
+    arrange(loghr)
+
+  cextext <- 1
+
+  if (is.null(minmy)) minmy <- round(exp(min(forestdata$lci, na.rm = T)), 1)
+  if (is.null(maxmy)) maxmy <- round(exp(max(forestdata$uci, na.rm = T)), 1)
+
+  # c(bottom, left, top, right)
+  par(mar = c(4, 15, 1, 1) + 0.2)
+
+
+  plot(forestdata$loghr, 1:nrow(forestdata),
+    cex = 1.5,
+    xlim = c(
+      log(minmy),
+      log(maxmy)
+    ),
+    xlab = "HR (95% CI)",
+    ylim = c(1, nrow(forestdata) + 1),
+    axes = FALSE,
+    ylab = NA,
+    main = NA,
+    type = "p",
+    pch = 22,
+    bg = global_kicols[1],
+    col = global_kicols[1]
+  )
+
+  for (i in 1:nrow(forestdata)) {
+    if (!is.na(forestdata$lci)[i]) {
+      matplot(c(forestdata$lci[i], forestdata$uci[i]), c(i, i),
+        type = "l", add = TRUE, col = global_kicols[1], cex = 1
+      )
+    }
+  }
+
+  matplot(c(log(1), log(1)), c(-1, nrow(forestdata)), type = "l", lwd = 1, lty = 3, add = TRUE, col = 1)
+
+  axismy <- seq(minmy, maxmy, 0.1)
+  axismy2 <- axismy
+  axismy2[!axismy %in% c(minmy, maxmy)] <- NA
+
+  axis(1,
+    cex.axis = cextext, at = log(axismy),
+    labels = axismy2
+  )
+  axis(1,
+    cex.axis = cextext, at = log(1),
+    labels = 1
+  )
+
+  axis(2,
+    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
+    labels = c(forestdata$Variable, "Comorbidity"),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 14, hadj = 0
+  )
+
+  axis(2,
+    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
+    labels = c(forestdata$hrci, "HR (95% CI)"),
+    cex.axis = cextext, tick = FALSE, las = 2, line = 4, hadj = 0.5
+  )
+
+  axis(2,
+    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
+    labels = c(forestdata$p, "P-value"),
+    cex.axis = cextext, tick = FALSE, las = 1, line = 0, hadj = 0.5
+  )
+}
+```
+
+```{r uniforestmortref, cache=cacheon, dependson=c("uniforestmorttab", "uniforestmortplot"), fig.cap="Association between non-cardiac comorbidities and all-cause mortality - rEF"}
+ref <- tabforestuni(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%")
+)
+plotforest(forestdata = ref, minmy = 0.3)
+```
+
+```{r uniforestmortmref, cache=cacheon, dependson=c("uniforestmorttab", "uniforestmortplot"), fig.cap="Association between non-cardiac comorbidities and all-cause mortality - mrEF"}
+mref <- tabforestuni(
+  data = edata %>% filter(survpop & num_Ef_cat == "41-49%")
+)
+plotforest(forestdata = mref, minmy = 0.3)
+```
+
+```{r uniforestmortpef, cache=cacheon, dependson=c("uniforestmorttab", "uniforestmortplot"), fig.cap="Association between non-cardiac comorbidities and all-cause mortality - pEF"}
+pef <- tabforestuni(
+  data = edata %>% filter(survpop & num_Ef_cat == ">=50%")
+)
+plotforest(forestdata = pef, minmy = 0.7)
+```

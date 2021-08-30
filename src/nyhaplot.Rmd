@@ -3,29 +3,27 @@
 
 bardata <- edata %>%
   filter(!is.na(num_hsNyha)) %>%
-  mutate(num_hsNyha = factor(num_hsNyha, levels = levels(num_dcNyha), labels = levels(num_dcNyha))) %>%
-  mutate(nocom_cat = forcats::fct_rev(nocom_cat)) %>%
-  group_by(num_Ef_cat, num_hsNyha) %>%
-  count(nocom_cat, .drop = F) %>%
+  group_by(num_Ef_cat, nocom_cat) %>%
+  count(num_hsNyha, .drop = F) %>%
   mutate(
     freq = (n / sum(n)) * 100,
     freq = if_else(is.nan(freq), 0, freq)
   ) %>%
   ungroup() %>%
-  mutate(EFnyha = paste(num_Ef_cat, num_hsNyha))
-# EFnyha = factor(EFnyha, levels = paste(rep(levels(edata$num_Ef_cat), each = 4), levels(edata$num_hsNyha))))
+  mutate(EFnocom = paste(num_Ef_cat, nocom_cat))
 
 ggplot(
   bardata,
-  aes(x = EFnyha, y = freq, fill = nocom_cat)
+  aes(x = EFnocom, y = freq, fill = num_hsNyha)
 ) +
   geom_col() +
+  geom_text(position = position_stack(vjust = 0.5), aes(x = EFnocom, y = freq, label = paste0(fn(freq, 0), "%"))) +
   # theme(axis.text.x=element_text(angle=90, hjust=1)) ## for checking
-  annotate(geom = "text", x = 1:12, y = -5, label = rep(c("I", "II", "III", "IV"), 3), size = 4) +
-  annotate(geom = "text", x = c(2.5, 6.5, 10.5), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
-  scale_fill_manual("No comorbidities",
-    labels = rev(levels(edata$nocom_cat)),
-    values = rev(global_kicols[1:5])
+  annotate(geom = "text", x = 1:15, y = -5, label = rep(levels(edata %>% pull(nocom_cat)), 3), size = 4) +
+  annotate(geom = "text", x = c(3, 8, 13), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
+  scale_fill_manual("NYHA class",
+    labels = levels(edata$num_hsNyha),
+    values = rev(global_kicols[c(6, 2, 3, 4)])
   ) +
   theme_minimal() +
   ylab("Percent") +
@@ -43,28 +41,27 @@ ggplot(
 
 bardata <- edata %>%
   filter(!is.na(num_dcNyha)) %>%
-  mutate(nocom_cat = forcats::fct_rev(nocom_cat)) %>%
-  group_by(num_Ef_cat, num_dcNyha) %>%
-  count(nocom_cat, .drop = F) %>%
+  group_by(num_Ef_cat, nocom_cat) %>%
+  count(num_dcNyha, .drop = F) %>%
   mutate(
     freq = (n / sum(n)) * 100,
     freq = if_else(is.nan(freq), 0, freq)
   ) %>%
   ungroup() %>%
-  mutate(EFnyha = paste(num_Ef_cat, num_dcNyha))
-# EFnyha = factor(EFnyha, levels = paste(rep(levels(edata$num_Ef_cat), each = 4), levels(edata$num_hsNyha))))
+  mutate(EFnocom = paste(num_Ef_cat, nocom_cat))
 
 ggplot(
   bardata,
-  aes(x = EFnyha, y = freq, fill = nocom_cat)
+  aes(x = EFnocom, y = freq, fill = num_dcNyha)
 ) +
   geom_col() +
+  geom_text(position = position_stack(vjust = 0.5), aes(x = EFnocom, y = freq, label = paste0(fn(freq, 0), "%"))) +
   # theme(axis.text.x=element_text(angle=90, hjust=1)) ## for checking
-  annotate(geom = "text", x = 1:12, y = -5, label = rep(c("I", "II", "III", "IV"), 3), size = 4) +
-  annotate(geom = "text", x = c(2.5, 6.5, 10.5), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
-  scale_fill_manual("No comorbidities",
-    labels = rev(levels(edata$nocom_cat)),
-    values = rev(global_kicols[1:5])
+  annotate(geom = "text", x = 1:15, y = -5, label = rep(levels(edata %>% pull(nocom_cat)), 3), size = 4) +
+  annotate(geom = "text", x = c(3, 8, 13), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
+  scale_fill_manual("NYHA class",
+    labels = levels(edata$num_dcNyha),
+    values = rev(global_kicols[c(6, 2, 3, 4)])
   ) +
   theme_minimal() +
   ylab("Percent") +
@@ -82,27 +79,27 @@ ggplot(
 
 bardata <- edata %>%
   filter(!is.na(decrease_Nyha)) %>%
-  mutate(nocom_cat = forcats::fct_rev(nocom_cat)) %>%
-  group_by(num_Ef_cat, decrease_Nyha) %>%
-  count(nocom_cat, .drop = F) %>%
+  group_by(num_Ef_cat, nocom_cat) %>%
+  count(decrease_Nyha, .drop = F) %>%
   mutate(
     freq = (n / sum(n)) * 100,
     freq = if_else(is.nan(freq), 0, freq)
   ) %>%
   ungroup() %>%
-  mutate(EFnyha = paste(num_Ef_cat, decrease_Nyha))
+  mutate(EFnocom = paste(num_Ef_cat, nocom_cat))
 
 ggplot(
   bardata,
-  aes(x = EFnyha, y = freq, fill = nocom_cat)
+  aes(x = EFnocom, y = freq, fill = decrease_Nyha)
 ) +
   geom_col() +
+  geom_text(position = position_stack(vjust = 0.5), aes(x = EFnocom, y = freq, label = paste0(fn(freq, 0), "%"))) +
   # theme(axis.text.x=element_text(angle=90, hjust=1)) ## for checking
-  annotate(geom = "text", x = 1:6, y = -5, label = rep(c("No improvment", "Improvment"), 3), size = 3) +
-  annotate(geom = "text", x = c(1.5, 3.5, 5.5), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
-  scale_fill_manual("No comorbidities",
-    labels = rev(levels(edata$nocom_cat)),
-    values = rev(global_kicols[1:5])
+  annotate(geom = "text", x = 1:15, y = -5, label = rep(levels(edata %>% pull(nocom_cat)), 3), size = 4) +
+  annotate(geom = "text", x = c(3, 8, 13), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
+  scale_fill_manual("Decrease in\nNYHA class",
+    labels = levels(edata$decrease_Nyha),
+    values = rev(global_kicols[c(2, 3)])
   ) +
   theme_minimal() +
   ylab("Percent") +

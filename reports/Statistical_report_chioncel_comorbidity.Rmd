@@ -83,7 +83,7 @@ comparisons were made and therefore the results should be viewed with some care.
 
 EF is defined as EF by Echo-Doppler recorded at discharge, or if this is missing, Last known EF recorded in Characteristics. 
 
-Number of non-cardiac comorbidities consist of the following: `r paste(comorbs, collapse = ", ")`
+The number of non-cardiac comorbidities score consist of the following: `r paste(comorbs, collapse = ", ")`
 
 ## Missing data
 
@@ -91,14 +91,6 @@ For patients with missing information on the date of hospitalisation,
 the time to hospitalisation was imputed with half the time to last
 follow-up. Further, times to hospitalisation that were larger than time 
 to death or last follow-up were set to death or last follow-up. 
-
-Might do this: Missing data for the covariates included in the models was imputed with multiple 
-imputation using mice [@mice] for 10 datasets and 10 iterations. 
-Variables included in the imputation model are the same as are 
-included in the cox regression. Death was included as the Nelson-Aalen estimator 
-in the imputation model. However, will depend on what variables are adjusted for in the models. 
-Currently Age, sex, SBP at admission, ischemic aetiology, atrial fibrillation, history of MI and there is 
- very little missing for these so not really justifiable to do mi. 
 
 ## Baseline characteristics
 
@@ -143,7 +135,6 @@ a Cumulative Link Mixed Model with a random effect for country was used.
 
 Length of stay is modelled using a generalized linear mixed-effects model 
 (GLMM) for the negative binomial family with a random effect for country. 
-(I am assuming LOS is lenght of stay at the index hosp, not during follow-up???)
 
 The long-term outcomes are presented with the Kaplan-Meier curves 
 (for outcomes with all-cause death) or cumulative incidence curves (with death as a competing risk). 
@@ -153,9 +144,13 @@ used to model the time to first event analysis.
 As a consistency analysis the long-term outcomes (not all-cause death)
 was modelled using a sub-distributional hazards model [@fg] where death was treated as a competing event. 
 
-The long-term outcomes were also modelled in a similar manner as above but with 
-an interaction term for EF, thereby enabling separate estimates for each EF group, and presented in a Forest plot. 
+The long-term outcomes were also modelled using Cox proportional hazards regressions with 
+an interaction term between the comorbidity score and EF, thereby enabling separate estimates for each EF group, and presented in a Forest plot. 
 The models were adjusted for the same variables as above. 
+
+The outcome all-cause mortality was further analysed in univariable 
+Cox proportional hazards regressions with each individual non-cardiac 
+comorbity summarizing to the comorbidity score separately in each EF group. 
 
 Time is from date of discharge, or if this is missing, date of admission and 
 censored at death not defined as an event or follow-up.  
@@ -188,6 +183,13 @@ Possible outliers were visually inspected by plotting the dfbetas.
 \newpage
 
 ```{r, child = "../src/outforestef.Rmd"}
+
+```
+
+\clearpage
+\newpage
+
+```{r, child = "../src/uniforestmort.Rmd"}
 
 ```
 

@@ -38,7 +38,7 @@ edata <- edata %>%
   )
 
 flow <- rbind(flow, c(
-  ". Not lost to follow-up and not negative follow-up times (long-term outcome population)",
+  ". Discharged alive, not lost to follow-up and not negative follow-up times (long-term outcome population)",
   nrow(edata %>% filter(survpop))
 ))
 
