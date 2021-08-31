@@ -1,8 +1,13 @@
 ```{r outtabfunc, cache=cacheon}
 
 outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, outvarcomp = NULL, model) {
-  if (!is.null(outvarcomp)) {
-    nr <- 4
+  if (model == "cox") {
+    if (!is.null(outvarcomp)) {
+      nr <- 5
+    }
+    if (is.null(outvarcomp)) {
+      nr <- 4
+    }
   } else {
     if (model == "ord") {
       nr <- 2 + length(levels(data %>% pull(!!sym(outvar))))
@@ -229,38 +234,45 @@ outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, out
       fn(r$upper, dig = 0), ")"
     )
 
+    out[2, 2] <- "% (95% CI) at 1 yr"
 
-    out[2, 2] <- "Crude HR (95% CI), p-value"
+    ## 1, yr mort
+
+    if (is.null(outvarcomp)) {
+      fit <- survfit(formula(paste0("Surv(", outtime, ",", outvar, "=='", outval, "') ~ nocom_cat")),
+        data = data
+      )
+
+      sfit <- summary(fit, times = c(365))
+
+      out[2, 3:7] <- paste0(
+        fn(100 - sfit$surv * 100, dig = 0), " (",
+        fn(100 - sfit$upper * 100, dig = 0), "-",
+        fn(100 - sfit$lower * 100, dig = 0), ")"
+      )
+    } else {
+      fit <- cuminc(
+        ftime = data %>% pull(!!sym(outtime)),
+        fstatus = data %>% pull(!!sym(outvarcomp)),
+        cencode = 0,
+        group = data %>% pull(nocom_cat)
+      )
+
+      sfit <- timepoints(fit[1:5], c(365))
+      sfitest <- sfit$est
+      sfitse <- sqrt(sfit$var)
+      out[2, 3:7] <- paste0(
+        fn(sfitest * 100, dig = 0), " (",
+        fn((sfitest - global_z05 * sfitse) * 100, dig = 0), "-",
+        fn((sfitest + global_z05 * sfitse) * 100, dig = 0), ")"
+      )
+    }
+
+    out[3, 2] <- "Crude HR (95% CI), p-value"
 
     # crude
     mod <- coxme::coxme(formula(paste0("Surv(", outtime, ",", outvar, " == '", outval, "') ~ nocom_cat + (1 | num_nation)")),
       data = data
-    )
-    se <- sqrt(diag(vcov(mod)))
-
-    rownos <- str_detect(names(mod$coefficients), "nocom_cat")
-
-    out[2, 3:7] <- c(
-      "ref",
-      paste0(
-        fn(exp(mod$coefficients[rownos]), 1),
-        " (",
-        fn(exp(mod$coefficients[rownos] - global_z05 * se[rownos]), 1),
-        "-",
-        fn(exp(mod$coefficients[rownos] + global_z05 * se[rownos]), 1),
-        "), ",
-        fn((1 - pnorm(abs(mod$coeff[rownos] / se[rownos]))) * 2, dig = 3, p = TRUE)
-      )
-    )
-
-    # adj
-    out[3, 2] <- "Adjusted HR (95% CI), p-value"
-
-    mod <- coxme::coxme(formula(paste0(
-      "Surv(", outtime, ",", outvar, " == '", outval, "') ~ nocom_cat  + ",
-      paste0(modvars, collapse = "+"), " + (1 | num_nation)"
-    )),
-    data = data
     )
     se <- sqrt(diag(vcov(mod)))
 
@@ -279,8 +291,34 @@ outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, out
       )
     )
 
+    # adj
+    out[4, 2] <- "Adjusted HR (95% CI), p-value"
+
+    mod <- coxme::coxme(formula(paste0(
+      "Surv(", outtime, ",", outvar, " == '", outval, "') ~ nocom_cat  + ",
+      paste0(modvars, collapse = "+"), " + (1 | num_nation)"
+    )),
+    data = data
+    )
+    se <- sqrt(diag(vcov(mod)))
+
+    rownos <- str_detect(names(mod$coefficients), "nocom_cat")
+
+    out[4, 3:7] <- c(
+      "ref",
+      paste0(
+        fn(exp(mod$coefficients[rownos]), 1),
+        " (",
+        fn(exp(mod$coefficients[rownos] - global_z05 * se[rownos]), 1),
+        "-",
+        fn(exp(mod$coefficients[rownos] + global_z05 * se[rownos]), 1),
+        "), ",
+        fn((1 - pnorm(abs(mod$coeff[rownos] / se[rownos]))) * 2, dig = 3, p = TRUE)
+      )
+    )
+
     if (!is.null(outvarcomp)) {
-      out[4, 2] <- "Adjusted HR (95% CI), p-value, death as competing risk"
+      out[5, 2] <- "Adjusted HR (95% CI), p-value, death as competing risk"
 
       modvarskont <- modvars[sapply(edata %>% select(!!!syms(modvars)), class) != "factor"]
       nams <- names(edata)
@@ -294,7 +332,7 @@ outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, out
 
       rownos <- str_detect(rownames(mod$conf.int), "nocom_cat")
 
-      out[4, 3:7] <- c(
+      out[5, 3:7] <- c(
         "ref",
         paste0(
           fn(mod$conf.int[rownos, "exp(coef)"], 1),
