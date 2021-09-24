@@ -107,21 +107,35 @@ plotforest <- function(forestdata, minmy = NULL, maxmy = NULL) {
   )
 
   axis(2,
-    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
-    labels = c(forestdata$Variable, "Comorbidity"),
+    at = nrow(forestdata) + 1,
+    labels = "Comorbidity",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 14, hadj = 0, font = 2
+  )
+  axis(2,
+    at = nrow(forestdata) + 1,
+    labels = "HR (95% CI)",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 4, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = nrow(forestdata) + 1,
+    labels = "P-value",
+    cex.axis = cextext, tick = FALSE, las = 1, line = -0.1, hadj = 0.5, font = 2
+  )
+  
+  axis(2,
+    at = 1:nrow(forestdata),
+    labels = forestdata$Variable,
     cex.axis = cextext, tick = FALSE, las = 2, line = 14, hadj = 0
   )
-
   axis(2,
-    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
-    labels = c(forestdata$hrci, "HR (95% CI)"),
+    at = 1:nrow(forestdata),
+    labels = forestdata$hrci,
     cex.axis = cextext, tick = FALSE, las = 2, line = 4, hadj = 0.5
   )
-
   axis(2,
-    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
-    labels = c(forestdata$p, "P-value"),
-    cex.axis = cextext, tick = FALSE, las = 1, line = 0, hadj = 0.5
+    at = 1:nrow(forestdata),
+    labels = forestdata$p,
+    cex.axis = cextext, tick = FALSE, las = 1, line = -0.1, hadj = 0.5
   )
 }
 ```

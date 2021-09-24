@@ -1,14 +1,5 @@
 edata <- edata %>%
   mutate(
-    # something odd with crt in tab 1 printout this fixes it (together w dropping org var)
-    dcrt = factor(case_when(
-      is.na(num_dcCrt) ~ NA_real_,
-      num_dcCrt == "Not indicated" ~ 1,
-      num_dcCrt == "Indicated" ~ 2,
-      num_dcCrt == "Already implanted" ~ 3
-    ),
-    levels = 1:3, labels = c("Not indicated", "Indicated", "Already implanted")
-    ),
     num_Ef = coalesce(num_dcEf, num_dmEflp),
     num_Ef_cat = factor(case_when(
       is.na(num_Ef) ~ NA_real_,
@@ -17,6 +8,14 @@ edata <- edata %>%
       num_Ef >= 50 ~ 3
     ),
     levels = 1:3, labels = c("<41%", "41-49%", ">=50%")
+    ),
+    num_delayhosp_cat = factor(case_when(
+      is.na(num_delayhosp) ~ NA_real_,
+      num_delayhosp < 7 ~ 1,
+      num_delayhosp >= 7 ~ 2
+    ),
+    levels = 1:2,
+    labels = c("<7 days", ">=7 days")
     ),
     num_age_cat = case_when(
       num_age < 65 ~ "<65",
@@ -65,6 +64,14 @@ edata <- edata %>%
       TRUE ~ "No"
     ),
     # pulm_congestion = if_else(num_dcXrn == "Yes", "No", as.character(num_dcXpu)),
+    num_dcNyha_cat = factor(case_when(
+      num_dcNyha %in% c("NYHA I", "NYHA II") ~ 1,
+      num_dcNyha %in% c("NYHA III", "NYHA IV") ~ 2
+    ), levels = 1:2, labels = c("I-II", "III-IV")),
+    num_hsNyha_cat = factor(case_when(
+      num_hsNyha %in% c("NYHA I", "NYHA II") ~ 1,
+      num_hsNyha %in% c("NYHA III", "NYHA IV") ~ 2
+    ), levels = 1:2, labels = c("I-II", "III-IV")),
     tmp_dcnyha = case_when(
       num_dcNyha == "NYHA I" ~ 1,
       num_dcNyha == "NYHA II" ~ 2,
@@ -86,10 +93,6 @@ edata <- edata %>%
     changepercent_Bpm = change_Bpm / num_dmBpm * 100,
     change_Weight = num_dcWeight - num_dmWeight,
     changepercent_Weight = change_Weight / num_dmWeight * 100,
-    change_weight = num_dcWeight - num_dmWeight,
-    changepercent_weight = (num_dcWeight - num_dmWeight) / num_dmWeight * 100,
-    change_weight = num_dcWeight - num_dmWeight,
-    changepercent_weight = (num_dcWeight - num_dmWeight) / num_dmWeight * 100,
     mdloopDiur_admission = case_when(
       is.na(num_mdDiurp_c2) ~ NA_character_,
       num_mdDiurp_c2 %in% c("Flurosemide", "Torasemide", "Bumetanide") |
@@ -102,31 +105,6 @@ edata <- edata %>%
         num_mdDiur2d_c2 %in% c("Flurosemide", "Torasemide", "Bumetanide") ~ "Yes",
       TRUE ~ "No"
     ),
-    #
-    #     num_mdDiurdo = case_when(num_dmPtype == "Hospital" ~ num_mdDiurddo,
-    #                             num_dmPtype == "Outpatient" ~ num_mdDiurhdo),
-    #     num_mdDiur2do = case_when(num_dmPtype == "Hospital" ~ num_mdDiur2ddo,
-    #                              num_dmPtype == "Outpatient" ~ num_mdDiur2hdo),
-    #
-    # tmp_dosed1 = case_when(
-    #   num_mdDiur_c2 == "Flurosemide" ~ num_mdDiurdo / 40 * 40,
-    #   num_mdDiur_c2 == "Torasemide" ~ num_mdDiurdo / 10 * 40,
-    #   num_mdDiur_c2 == "Bumetanide" ~ num_mdDiurdo / 1 * 40
-    # ),
-    #
-    # tmp_dosed2 = case_when(
-    #   num_mdDiur2_c2 == "Flurosemide" ~ num_mdDiur2do / 40 * 40,
-    #   num_mdDiur2_c2 == "Torasemide" ~ num_mdDiur2do / 10 * 40,
-    #   num_mdDiur2_c2 == "Bumetanide" ~ num_mdDiur2do / 1 * 40
-    # ),
-    #
-    # d_loopDiurddose_eqFurosemide = case_when(
-    #   num_mdDiur_c2 %in% c("Flurosemide", "Torasemide", "Bumetanide") &
-    #     num_mdDiur2_c2 %in% c("Flurosemide", "Torasemide", "Bumetanide") ~ tmp_dosed1 + tmp_dosed2,
-    #   num_mdDiur_c2 %in% c("Flurosemide", "Torasemide", "Bumetanide") ~ tmp_dosed1,
-    #   num_mdDiur2_c2 %in% c("Flurosemide", "Torasemide", "Bumetanide") ~ tmp_dosed2
-    # ),
-
     RASi_admission = case_when(
       is.na(num_mdACEp) | is.na(num_mdATp) ~ NA_character_,
       num_mdACEp == "Yes" | num_mdATp == "Yes" ~ "Yes",
@@ -182,9 +160,9 @@ edata <- edata %>%
       num_mdBBp_c2 == "Carvedilol" ~ num_mdBBpdo / 25
     ),
     BBdosetarget_admission = factor(case_when(
-      tmp_BBdosep < 10 / 2 ~ 1,
-      tmp_BBdosep < 10 ~ 2,
-      tmp_BBdosep >= 10 ~ 3
+      tmp_BBdosep < 1 / 2 ~ 1,
+      tmp_BBdosep < 1 ~ 2,
+      tmp_BBdosep >= 1 ~ 3
     ), levels = 1:3, labels = c("<50%", "50-<100%", "100%")),
     tmp_BBdosed = case_when(
       num_mdBBd_c2 == "Bisoprolol" ~ num_mdBBddo / 10,
@@ -193,9 +171,9 @@ edata <- edata %>%
       num_mdBBd_c2 == "Carvedilol" ~ num_mdBBddo / 25
     ),
     BBdosetarget_discharge = factor(case_when(
-      tmp_BBdosed < 10 / 2 ~ 1,
-      tmp_BBdosed < 10 ~ 2,
-      tmp_BBdosed >= 10 ~ 3
+      tmp_BBdosed < 1 / 2 ~ 1,
+      tmp_BBdosed < 1 ~ 2,
+      tmp_BBdosed >= 1 ~ 3
     ), levels = 1:3, labels = c("<50%", "50-<100%", "100%")),
     ALdosetarget_admission = factor(case_when(
       num_mdALpdo < 50 / 2 ~ 1,
@@ -300,7 +278,5 @@ edata <- edata %>%
 edata <- create_crvar(edata, "nocom_cat")
 
 for (i in seq_along(modvars)) {
-  if (class(edata %>% pull(modvars[i])) == "factor") {
-    edata <- create_crvar(edata, modvars[i])
-  }
+  edata <- create_crvar(edata, modvars[i])
 }

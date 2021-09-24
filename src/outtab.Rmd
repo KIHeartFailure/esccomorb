@@ -1,6 +1,6 @@
 ```{r outtabfunc, cache=cacheon}
 
-outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, outvarcomp = NULL, model) {
+outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, outvarcomp = NULL, model, extradescvar = NULL) {
   if (model == "cox") {
     if (!is.null(outvarcomp)) {
       nr <- 5
@@ -8,14 +8,19 @@ outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, out
     if (is.null(outvarcomp)) {
       nr <- 4
     }
-  } else {
-    if (model == "ord") {
-      nr <- 2 + length(levels(data %>% pull(!!sym(outvar))))
-    }
-    else {
-      nr <- 3
+  }
+  if (model == "bin") {
+    nr <- 3
+    if (!is.null(extradescvar)) {
+      if (class(data %>% pull(!!sym(extradescvar))) %in% c("factor")) {
+        nr <- nr + length(levels(data %>% pull(!!sym(extradescvar))))
+      }
+      if (class(data %>% pull(!!sym(extradescvar))) %in% c("numeric")) {
+        nr <- nr + 1
+      }
     }
   }
+
   out <- data.frame(matrix(NA, ncol = 7, nrow = nr))
 
   out[1, 1] <- outvarname
@@ -25,9 +30,42 @@ outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, out
   )
 
   if (model == "bin") {
+    if (!is.null(extradescvar)) {
+      if (class(data %>% pull(!!sym(extradescvar))) %in% c("numeric")) {
+        # med (q1-q3)
+        out[1, 2] <- "Median (q1-q3)"
+
+        med <- data %>%
+          filter(!is.na(!!sym(extradescvar))) %>%
+          group_by(nocom_cat) %>%
+          summarise(
+            med = fn(median(!!sym(extradescvar)), dig = 1),
+            q1 = fn(quantile(!!sym(extradescvar), p = 0.25), dig = 1),
+            q3 = fn(quantile(!!sym(extradescvar), p = 0.75), dig = 1)
+          ) %>%
+          mutate(out = paste0(med, " (", q1, "-", q3, ")"))
+
+        out[1, 3:7] <- med$out
+      }
+      if (class(data %>% pull(!!sym(extradescvar))) %in% c("factor")) {
+        # n (%)
+        out[1:(nr - 3), 2] <- paste0("n (%) ", levels(data %>% pull(!!sym(extradescvar))))
+
+        np <- data %>%
+          filter(!is.na(!!sym(extradescvar))) %>%
+          group_by(nocom_cat) %>%
+          count(!!sym(extradescvar)) %>%
+          mutate(
+            p = fn(n / sum(n) * 100, 1),
+            np = paste0(n, " (", p, "%)")
+          )
+
+        out[1:(nr - 3), 3:7] <- np$np
+      }
+    }
 
     # n (%)
-    out[1, 2] <- "n (%)"
+    out[nr - 2, 2] <- ifelse(!is.null(extradescvar), paste0(outval, " n (%)"), " n (%)")
 
     np <- data %>%
       filter(!is.na(!!sym(outvar))) %>%
@@ -39,7 +77,7 @@ outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, out
       ) %>%
       filter(!!sym(outvar) == outval)
 
-    out[1, 3:7] <- np$np
+    out[nr - 2, 3:7] <- np$np
 
     # crude
     mod <- summary(lme4::glmer(formula(paste0(outvar, " == '", outval, "' ~ nocom_cat + (1 | num_nation)")),
@@ -49,8 +87,8 @@ outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, out
 
     rownos <- str_detect(rownames(mod$coefficients), "nocom_cat")
 
-    out[2, 2] <- "Crude OR (95% CI), p-value"
-    out[2, 3:7] <- c(
+    out[nr - 1, 2] <- "Crude OR (95% CI), p-value"
+    out[nr - 1, 3:7] <- c(
       "ref",
       paste0(
         fn(exp(mod$coefficients[rownos, 1]), 1),
@@ -65,15 +103,15 @@ outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, out
 
     # adj
 
-    mod <- summary(lme4::glmer(formula(paste0(outvar, " == '", outval, "' ~ nocom_cat + (1 | num_nation) + ", paste0(modvars, collapse = "+"))),
+    mod <- summary(lme4::glmer(formula(paste0(outvar, " == '", outval, "' ~ nocom_cat + (1 | num_nation) + ", paste0(modvarsns, collapse = "+"))),
       family = "binomial",
       data = data
     ))
 
     rownos <- str_detect(rownames(mod$coefficients), "nocom_cat")
 
-    out[3, 2] <- "Adjusted OR (95% CI), p-value"
-    out[3, 3:7] <- c(
+    out[nr, 2] <- "Adjusted OR (95% CI), p-value"
+    out[nr, 3:7] <- c(
       "ref",
       paste0(
         fn(exp(mod$coefficients[rownos, 1]), 1),
@@ -83,125 +121,6 @@ outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, out
         fn(exp(mod$coefficients[rownos, 1] + global_z05 * mod$coefficients[rownos, 2]), 1),
         "), ",
         fn(mod$coefficients[rownos, 4], dig = 3, p = T)
-      )
-    )
-  }
-
-  if (model == "negbin") {
-
-    # med (q1-q3)
-    out[1, 2] <- "Median (q1-q3)"
-
-    med <- data %>%
-      filter(!is.na(!!sym(outvar))) %>%
-      group_by(nocom_cat) %>%
-      summarise(
-        med = fn(median(!!sym(outvar)), dig = 1),
-        q1 = fn(quantile(!!sym(outvar), p = 0.25), dig = 1),
-        q3 = fn(quantile(!!sym(outvar), p = 0.75), dig = 1)
-      ) %>%
-      mutate(out = paste0(med, " (", q1, "-", q3, ")"))
-
-    out[1, 3:7] <- med$out
-
-    # crude
-    mod <- summary(lme4::glmer.nb(formula(paste0(outvar, " ~ nocom_cat + (1 | num_nation)")),
-      data = data
-    ))
-
-    rownos <- str_detect(rownames(mod$coefficients), "nocom_cat")
-
-    out[2, 2] <- "Crude IRR (95% CI), p-value"
-    out[2, 3:7] <- c(
-      "ref",
-      paste0(
-        fn(exp(mod$coefficients[rownos, "Estimate"]), 1),
-        " (",
-        fn(exp(mod$coefficients[rownos, "Estimate"] - global_z05 * mod$coefficients[rownos, "Std. Error"]), 1),
-        "-",
-        fn(exp(mod$coefficients[rownos, "Estimate"] + global_z05 * mod$coefficients[rownos, "Std. Error"]), 1),
-        "), ",
-        fn(mod$coefficients[rownos, "Pr(>|z|)"], dig = 3, p = T)
-      )
-    )
-
-    # adj
-
-    mod <- summary(lme4::glmer.nb(formula(paste0(outvar, " ~ nocom_cat + (1 | num_nation) + ", paste0(modvars, collapse = "+"))),
-      data = data
-    ))
-
-    rownos <- str_detect(rownames(mod$coefficients), "nocom_cat")
-
-    out[3, 2] <- "Adjusted IRR (95% CI), p-value"
-    out[3, 3:7] <- c(
-      "ref",
-      paste0(
-        fn(exp(mod$coefficients[rownos, "Estimate"]), 1),
-        " (",
-        fn(exp(mod$coefficients[rownos, "Estimate"] - global_z05 * mod$coefficients[rownos, "Std. Error"]), 1),
-        "-",
-        fn(exp(mod$coefficients[rownos, "Estimate"] + global_z05 * mod$coefficients[rownos, "Std. Error"]), 1),
-        "), ",
-        fn(mod$coefficients[rownos, "Pr(>|z|)"], dig = 3, p = T)
-      )
-    )
-  }
-
-  if (model == "ord") {
-
-    # n (%)
-    out[1:(nr - 2), 2] <- paste0("n (%) ", levels(data %>% pull(!!sym(outvar))))
-
-    np <- data %>%
-      filter(!is.na(!!sym(outvar))) %>%
-      group_by(nocom_cat) %>%
-      count(!!sym(outvar)) %>%
-      mutate(
-        p = fn(n / sum(n) * 100, 1),
-        np = paste0(n, " (", p, "%)")
-      )
-
-    out[1:(nr - 2), 3:7] <- np$np
-
-
-    # crude
-    mod <- summary(ordinal::clmm(formula(paste0(outvar, " ~ nocom_cat + (1 | num_nation)")),
-      data = data
-    ))
-
-    rownos <- str_detect(rownames(mod$coefficients), "nocom_cat")
-    out[nr - 1, 2] <- "Crude OR (95% CI), p-value"
-    out[nr - 1, 3:7] <- c(
-      "ref",
-      paste0(
-        fn(exp(mod$coefficients[rownos, "Estimate"]), 1),
-        " (",
-        fn(exp(mod$coefficients[rownos, "Estimate"] - global_z05 * mod$coefficients[rownos, "Std. Error"]), 1),
-        "-",
-        fn(exp(mod$coefficients[rownos, "Estimate"] + global_z05 * mod$coefficients[rownos, "Std. Error"]), 1),
-        "), ",
-        fn(mod$coefficients[rownos, "Pr(>|z|)"], dig = 3, p = T)
-      )
-    )
-
-    # adj
-    mod <- summary(ordinal::clmm(formula(paste0(outvar, " ~ nocom_cat + (1 | num_nation) + ", paste0(modvars, collapse = " + "))),
-      data = data
-    ))
-
-    rownos <- str_detect(rownames(mod$coefficients), "nocom_cat")
-    out[nr, 2] <- "Adjusted OR (95% CI), p-value"
-    out[nr, 3:7] <- c(
-      "ref",
-      paste0(
-        fn(exp(mod$coefficients[rownos, "Estimate"]), 1),
-        " (",
-        fn(exp(mod$coefficients[rownos, "Estimate"] - global_z05 * mod$coefficients[rownos, "Std. Error"]), 1),
-        "-",
-        fn(exp(mod$coefficients[rownos, "Estimate"] + global_z05 * mod$coefficients[rownos, "Std. Error"]), 1),
-        "), ",
-        fn(mod$coefficients[rownos, "Pr(>|z|)"], dig = 3, p = T)
       )
     )
   }
@@ -296,7 +215,7 @@ outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, out
 
     mod <- coxme::coxme(formula(paste0(
       "Surv(", outtime, ",", outvar, " == '", outval, "') ~ nocom_cat  + ",
-      paste0(modvars, collapse = "+"), " + (1 | num_nation)"
+      paste0(modvarsns, collapse = "+"), " + (1 | num_nation)"
     )),
     data = data
     )
@@ -351,10 +270,22 @@ outfunc <- function(data, outvarname, outvar, outval = NULL, outtime = NULL, out
 ```
 
 ```{r outtab, include=FALSE, dependson="outtabfunc", cache=cacheon}
-admissionnyha <- outfunc(data = edata, outvarname = "NYHA at admission", outvar = "num_hsNyha", outval = NULL, outtime = NULL, model = "ord")
-dischargenyha <- outfunc(data = edata, outvarname = "NYHA at discharge", outvar = "num_dcNyha", outval = NULL, outtime = NULL, model = "ord")
-decreasenyha <- outfunc(data = edata, outvarname = "Decrease in NYHA", outvar = "decrease_Nyha", outval = "Yes", outtime = NULL, model = "bin")
-los <- outfunc(data = edata, outvarname = "Lenght of stay", outvar = "num_delayhosp", outval = NULL, outtime = NULL, model = "negbin")
+admissionnyha <- outfunc(
+  data = edata, outvarname = "NYHA III-IV at admission", outvar = "num_hsNyha_cat", outval = "III-IV", outtime = NULL, model = "bin",
+  extradescvar = "num_hsNyha"
+)
+dischargenyha <- outfunc(
+  data = edata %>% filter(dischargepop),
+  outvarname = "NYHA III-IV at discharge", outvar = "num_dcNyha_cat", outval = "III-IV", outtime = NULL, model = "bin", extradescvar = "num_dcNyha"
+)
+decreasenyha <- outfunc(
+  data = edata %>% filter(dischargepop),
+  outvarname = "Decrease in NYHA", outvar = "decrease_Nyha", outval = "Yes", outtime = NULL, model = "bin"
+)
+los <- outfunc(
+  data = edata, outvarname = "Lenght of stay >= 7 days",
+  outvar = "num_delayhosp_cat", outval = ">=7 days", outtime = NULL, model = "bin", extradescvar = "num_delayhosp"
+)
 inhospmort <- outfunc(data = edata, outvarname = "In-hospital mortality", outvar = "out_death_inhosp", outval = "Yes", outtime = NULL, model = "bin")
 death <- outfunc(
   data = edata %>% filter(survpop), outvarname = "All-cause mortality", outvar = "out_death", outval = 1,
@@ -392,7 +323,7 @@ outall <- bind_rows(
 ```
 
 ```{r outtabprint, dependson=c("outtabfunc", "outtab"), cache=cacheon}
-write.xlsx(outall, paste0("./output/tabs/outall", Sys.Date(), ".xlsx"), rowNames = FALSE)
+write.xlsx(outall, paste0("./output/tabs/outcomes_", Sys.Date(), ".xlsx"), rowNames = FALSE)
 
 default_kable(outall,
   caption = sanitize_text("Associations between NYHA/outcomes and no of non-cardiac comorbidities")

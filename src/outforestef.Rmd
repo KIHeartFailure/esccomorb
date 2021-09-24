@@ -3,18 +3,18 @@ tabforest <- function(data, outtime, outvar, outval = 1) {
   levs <- levels(edata$nocom_cat)
   levsef <- levels(edata$num_Ef_cat)
 
-  out <- data.frame(matrix(NA, ncol = 8, nrow = length(levs) * 3 + 1))
+  out <- data.frame(matrix(NA, ncol = 8, nrow = length(levs) * 3))
 
-  out[, 2] <- c(NA, rep(levs, 3))
+  out[, 2] <- rep(levs, 3)
 
   colnames(out) <- c("EF", "No comorbs", "hrci", "p", "loghr", "lci", "uci", "pint")
 
   for (i in seq_along(levsef)) {
-    out[i + 1 + ((i - 1) * (length(levs) - 1)), 1] <- levsef[i]
+    out[i + ((i - 1) * (length(levs) - 1)), 1] <- levsef[i]
 
     mod <- coxme::coxme(formula(paste0(
       "Surv(", outtime, ",", outvar, " == '", outval, "') ~ nocom_cat * relevel(num_Ef_cat, ref = '", levsef[i], "') + ",
-      paste0(modvars, collapse = "+"), " + (1 | num_nation)"
+      paste0(modvarsns, collapse = "+"), " + (1 | num_nation)"
     )),
     data = data
     )
@@ -22,7 +22,7 @@ tabforest <- function(data, outtime, outvar, outval = 1) {
     se <- sqrt(diag(vcov(mod)))
 
     rownos <- 1:4
-    colplace <- (i + 1 + ((i - 1) * (length(levs) - 1))):(1 + (i * length(levs)))
+    colplace <- (i + ((i - 1) * (length(levs) - 1))):(i * length(levs))
     out[colplace, 3] <- c(
       "ref",
       paste0(
@@ -53,23 +53,28 @@ tabforest <- function(data, outtime, outvar, outval = 1) {
 
 ```{r outforestefplot, cache=cacheon, dependson="outforestsub"}
 plotforest <- function(forestdata) {
+  forestdata <- forestdata %>%
+    mutate(c = 1:n()) %>%
+    arrange(desc(c))
+
+  nf <- nrow(forestdata)
+
   cextext <- 1
 
   minmy <- round(exp(min(forestdata$lci, na.rm = T)), 1)
   maxmy <- round(exp(max(forestdata$uci, na.rm = T)), 1)
 
   # c(bottom, left, top, right)
-  par(mar = c(4, 17, 1, 1) + 0.2)
+  par(mar = c(4, 15, 0, 0) + 0.2)
 
-
-  plot(rev(forestdata$loghr), 1:nrow(forestdata),
+  plot(forestdata$loghr, 1:nf,
     cex = 1.5,
     xlim = c(
       log(minmy),
-      log(maxmy)
+      log(maxmy) + log(maxmy) * 0.15
     ),
     xlab = "HR (95% CI)",
-    ylim = c(1, nrow(forestdata) + .4),
+    ylim = c(1, nf + 1),
     axes = FALSE,
     ylab = NA,
     main = NA,
@@ -79,15 +84,15 @@ plotforest <- function(forestdata) {
     col = global_kicols[1]
   )
 
-  for (i in 1:nrow(forestdata)) {
-    if (!is.na(rev(forestdata$lci)[i])) {
-      matplot(c(rev(forestdata$lci)[i], rev(forestdata$uci)[i]), c(i, i),
+  for (i in 1:nf) {
+    if (!is.na(forestdata$lci[i])) {
+      matplot(c(forestdata$lci[i], forestdata$uci[i]), c(i, i),
         type = "l", add = TRUE, col = global_kicols[1], cex = 1
       )
     }
   }
 
-  matplot(c(log(1), log(1)), c(-1, nrow(forestdata)), type = "l", lwd = 1, lty = 3, add = TRUE, col = 1)
+  matplot(c(log(1), log(1)), c(-1, nf), type = "l", lwd = 1, lty = 3, add = TRUE, col = 1)
 
   axismy <- seq(minmy, maxmy, 0.1)
   axismy2 <- axismy
@@ -103,34 +108,48 @@ plotforest <- function(forestdata) {
   )
 
   axis(2,
-    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
-    labels = c(rev(forestdata$EF), "EF"),
-    cex.axis = cextext, tick = FALSE, las = 2, line = 16, hadj = 0
+    at = 1:nf,
+    labels = forestdata$EF,
+    cex.axis = cextext, tick = FALSE, las = 2, line = 14, hadj = 0
+  )
+  axis(2,
+    at = 1:nf,
+    labels = forestdata$`No comorbs`,
+    cex.axis = cextext, tick = FALSE, las = 2, line = 19.5, hadj = 0
+  )
+  axis(2,
+    at = 1:nf,
+    labels = forestdata$hrci,
+    cex.axis = cextext, tick = FALSE, las = 2, line = 5, hadj = 0.5
+  )
+  axis(2,
+    at = 1:nf,
+    labels = forestdata$p,
+    cex.axis = cextext, tick = FALSE, las = 1, line = .5, hadj = 0.5
   )
 
   axis(2,
-    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
-    labels = c(rev(forestdata$`No comorbs`), "No"),
-    cex.axis = cextext, tick = FALSE, las = 2, line = 11.5, hadj = 0
+    at = nf + 1,
+    labels = "EF",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 14, hadj = 0, font = 2
+  )
+  axis(2,
+    at = nf + 1,
+    labels = "No",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 19.5, hadj = 0, font = 2
+  )
+  axis(2,
+    at = nf + 1,
+    labels = "HR (95% CI)",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 5, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = nf + 1,
+    labels = "P-value",
+    cex.axis = cextext, tick = FALSE, las = 2, line = .5, hadj = 0.5, font = 2
   )
 
-  axis(2,
-    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
-    labels = c(rev(forestdata$hrci), "HR (95% CI)"),
-    cex.axis = cextext, tick = FALSE, las = 2, line = 7, hadj = 0.5
-  )
-
-  axis(2,
-    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
-    labels = c(rev(forestdata$p), "P"),
-    cex.axis = cextext, tick = FALSE, las = 1, line = 2.5, hadj = 0.5
-  )
-
-  axis(2,
-    at = c(1:nrow(forestdata), nrow(forestdata) + 1),
-    labels = c(rev(forestdata$pint), "P interaktion"),
-    cex.axis = cextext, tick = FALSE, las = 1, line = -0.5, hadj = 0.5
-  )
+  text(x = log(maxmy) + log(maxmy) * 0.15, y = nf / 2, labels = paste0("P-value interaction: ", last(forestdata$pint)), srt = -90)
 }
 ```
 

@@ -1,21 +1,20 @@
 ```{r tab1, cache=cacheon}
 
 tab1func <- function(data, tabname, vars, stratavar) {
-  tab <- print(
-    CreateTableOne(
-      vars = vars,
-      data = data,
-      strata = stratavar
-    ),
-    smd = FALSE,
-    missing = TRUE,
-    printToggle = FALSE,
-    nonnormal = vars,
-    test = TRUE,
-    catDigits = 1,
-    contDigits = 1,
-    explain = FALSE,
-    noSpaces = TRUE
+  tab <- print(CreateTableOne(
+    vars = vars,
+    data = data,
+    strata = stratavar,
+    testExact = chisq.test
+  ),
+  smd = FALSE,
+  missing = TRUE,
+  printToggle = FALSE,
+  nonnormal = vars,
+  catDigits = 1,
+  contDigits = 1,
+  explain = FALSE,
+  noSpaces = TRUE
   )
   tab <- as_tibble(cbind(var = rownames(tab), tab)) %>%
     select(-test) %>%
@@ -24,25 +23,6 @@ tab1func <- function(data, tabname, vars, stratavar) {
   tab <- tab %>%
     # remove = Yes
     mutate(across(everything(), str_replace_all, fixed(" = Yes"), ""))
-  # %>%
-  #   # to get labs in place
-  #   mutate(
-  #     var_tmp = str_split(var, " = ", simplify = TRUE)[, 1],
-  #     val_tmp = str_split(var, " = ", simplify = TRUE)[, 2]
-  #   )
-  #
-  # tab <- left_join(tab,
-  #   esclab %>%
-  #     select(variable, label),
-  #   by = c("var_tmp" = "variable")
-  # ) %>%
-  #   mutate(
-  #     Variable = coalesce(label, var_tmp),
-  #     Variable = if_else(val_tmp != "",
-  #       paste0(Variable, " ", val_tmp),
-  #       Variable
-  #     )
-  #   )
 
   write.xlsx(tab %>% select(var, Missing:p), paste0("./output/tabs/tab1_", tabname, "_", Sys.Date(), ".xlsx"), rowNames = FALSE)
 

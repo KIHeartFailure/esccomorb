@@ -129,7 +129,7 @@ tabvars <- c(
   "num_dcPci",
   "num_dcEps",
   "num_dcTransab",
-  "dcrt",
+  "num_dcCrt",
   "num_dcIcd",
   "num_dcRhCath",
   "num_dcIapb"
@@ -168,6 +168,10 @@ modvars <- c(
   "num_dmMi",
   "num_dmAfib_c1"
 )
+
+nsvars <- c("num_age", "num_dmBp1")
+modvarsns <- if_else(modvars %in% nsvars, paste0("ns(", modvars, ", df = 4)"), modvars)
+
 
 comorbs <- c(
   "num_dmDiab_c1",

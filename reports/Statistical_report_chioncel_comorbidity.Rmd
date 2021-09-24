@@ -1,6 +1,5 @@
 ---
 title: 'Statistical report: Prognostic impact of non-cardiac comorbidity burden in patients hospitalized for AHF and stratified by EF categories: rEF, mrEF and pEF'
-subtitle: 'DRAFT'
 author: 'Statistician: Lina Benson'
   
 date: "`r Sys.Date()`"
@@ -15,8 +14,6 @@ bibliography: references.bib
 nocite: '@*'
 urlcolor: blue
 linkcolor: black
-header-includes:
-   - \usepackage{draftwatermark}
 ---
 
 \newpage 
@@ -83,7 +80,7 @@ comparisons were made and therefore the results should be viewed with some care.
 
 EF is defined as EF by Echo-Doppler recorded at discharge, or if this is missing, Last known EF recorded in Characteristics. 
 
-The number of non-cardiac comorbidities score consist of the following: `r paste(comorbs, collapse = ", ")`
+The number of non-cardiac comorbidities score consist of the following: `r paste(comorbs, collapse = ", ")`.
 
 ## Missing data
 
@@ -98,7 +95,6 @@ to death or last follow-up were set to death or last follow-up.
 
 ```
 
-\clearpage
 \newpage
 
 ## Comorbs/NYHA
@@ -107,7 +103,6 @@ to death or last follow-up were set to death or last follow-up.
 
 ```
 
-\clearpage
 \newpage
 
 ## Outcome analysis
@@ -118,23 +113,21 @@ The following outcomes are considered:
 - NYHA at discharge
 - Change in NYHA
 - In-hospital mortality
-- Length of stay
+- Length of stay at index hospitalization >= 7 days
 - 1 year (approx) All-cause mortality
 - 1 year (approx) All-cause hospitalisations
 - 1 year (approx) CV mortality
 - 1 year (approx) HF hospitalisations
 - 1 year (approx) All-cause mortality/HF hospitalisations
 
-For all models adjustment is performed for `r paste(modvars, collapse = ", ")`. 
+For all models adjustment is performed for `r paste(modvars, collapse = ", ")` where 
+the continuous variables are modelled using cubic splines with 4 degrees of freedom. 
 
-For the binomial outcomes (decrease in NYHA and in-hospital mortality) 
-a generalized linear mixed-effects model (GMMM) with a logit link and a random effect for country was used. 
+NYHA class at admission and discharge and length of stay were categorized as 
+dichotomous variables. 
 
-For the ordinal outcomes (NYHA class at admission and discharge) 
-a Cumulative Link Mixed Model with a random effect for country was used. 
-
-Length of stay is modelled using a generalized linear mixed-effects model 
-(GLMM) for the negative binomial family with a random effect for country. 
+For the binomial outcomes (NYHA, LOS and in-hospital mortality) 
+a generalized linear mixed-effects model (GLMM) with a logit link and a random effect for country was used. 
 
 The long-term outcomes are presented with the Kaplan-Meier curves 
 (for outcomes with all-cause death) or cumulative incidence curves (with death as a competing risk). 
@@ -145,7 +138,8 @@ As a consistency analysis the long-term outcomes (not all-cause death)
 was modelled using a sub-distributional hazards model [@fg] where death was treated as a competing event. 
 
 The long-term outcomes were also modelled using Cox proportional hazards regressions with 
-an interaction term between the comorbidity score and EF, thereby enabling separate estimates for each EF group, and presented in a Forest plot. 
+an interaction term between the comorbidity score and EF, thereby enabling separate 
+estimates for each EF group, and presented in a Forest plot. 
 The models were adjusted for the same variables as above. 
 
 The outcome all-cause mortality was further analysed in univariable 
@@ -168,39 +162,32 @@ The median (min-max) follow-up for the long-term outcomes is
 ### Assumptions
 
 The proportional hazards assumption was investigated using the scaled Schoenfeld 
-residuals (cox.zph in [@survival-package]) for the primary outcome. 
-Possible outliers were visually inspected by plotting the dfbetas. 
-=> XXXX. 
+residuals (cox.zph in [@survival-package]) for the survival outcomes. 
 
-\clearpage
 \newpage
                                    
 ```{r, child = "../src/outtab.Rmd"}
 
 ```
 
-\clearpage
 \newpage
 
 ```{r, child = "../src/outforestef.Rmd"}
 
 ```
 
-\clearpage
 \newpage
 
 ```{r, child = "../src/uniforestmort.Rmd"}
 
 ```
 
-\clearpage
 \newpage
 
 ```{r, child = "../src/km.Rmd"}
 
 ```
 
-\clearpage
 \newpage
 
 # Reproducibility
