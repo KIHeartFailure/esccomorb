@@ -176,6 +176,10 @@ residuals (cox.zph in [@survival-package]) for the survival outcomes.
 
 ```
 
+```{r, child = "../src/outforestefabstract.Rmd"}
+
+```
+
 \newpage
 
 ```{r, child = "../src/uniforestmort.Rmd"}

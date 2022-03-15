@@ -1,10 +1,23 @@
 ```{r uniforestmorttab, cache=cacheon}
 tabforestuni <- function(data) {
-  out <- data.frame(matrix(NA, ncol = 6, nrow = length(comorbs)))
+  out <- data.frame(matrix(NA, ncol = 7, nrow = length(comorbs)))
 
-  colnames(out) <- c("var", "hrci", "p", "loghr", "lci", "uci")
+  colnames(out) <- c("var", "hrci", "p", "loghr", "lci", "uci", "prop")
 
   for (i in seq_along(comorbs)) {
+    fit <- survfit(formula(paste0("Surv(outtime_death, out_death == 1) ~ ", comorbs[i])),
+      data = data
+    )
+
+    sfit <- summary(fit, times = c(365))
+
+    out[i, 7] <- paste0(rev(paste0(
+      fn(100 - sfit$surv * 100, dig = 0), " (",
+      fn(100 - sfit$upper * 100, dig = 0), "-",
+      fn(100 - sfit$lower * 100, dig = 0), ")"
+    )), collapse = "/")
+
+
     out[i, 1] <- comorbs[i]
 
     mod <- coxme::coxme(formula(paste0(
@@ -63,7 +76,7 @@ plotforest <- function(forestdata, minmy = NULL, maxmy = NULL) {
   if (is.null(maxmy)) maxmy <- round(exp(max(forestdata$uci, na.rm = T)), 1)
 
   # c(bottom, left, top, right)
-  par(mar = c(4, 15, 1, 1) + 0.2)
+  par(mar = c(4, 25, 1, 1) + 0.2)
 
 
   plot(forestdata$loghr, 1:nrow(forestdata),
@@ -109,7 +122,12 @@ plotforest <- function(forestdata, minmy = NULL, maxmy = NULL) {
   axis(2,
     at = nrow(forestdata) + 1,
     labels = "Comorbidity",
-    cex.axis = cextext, tick = FALSE, las = 2, line = 14, hadj = 0, font = 2
+    cex.axis = cextext, tick = FALSE, las = 2, line = 24, hadj = 0, font = 2
+  )
+  axis(2,
+    at = nrow(forestdata) + 1,
+    labels = "% Death 1yr (95% CI)",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 11, hadj = 0.5, font = 2
   )
   axis(2,
     at = nrow(forestdata) + 1,
@@ -121,11 +139,16 @@ plotforest <- function(forestdata, minmy = NULL, maxmy = NULL) {
     labels = "P-value",
     cex.axis = cextext, tick = FALSE, las = 1, line = -0.1, hadj = 0.5, font = 2
   )
-  
+
   axis(2,
     at = 1:nrow(forestdata),
     labels = forestdata$Variable,
-    cex.axis = cextext, tick = FALSE, las = 2, line = 14, hadj = 0
+    cex.axis = cextext, tick = FALSE, las = 2, line = 24, hadj = 0
+  )
+  axis(2,
+    at = 1:nrow(forestdata),
+    labels = forestdata$prop,
+    cex.axis = cextext, tick = FALSE, las = 2, line = 11, hadj = 0.5
   )
   axis(2,
     at = 1:nrow(forestdata),

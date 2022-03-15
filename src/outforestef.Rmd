@@ -5,12 +5,12 @@ tabforest <- function(data, outtime, outvar, outval = 1) {
 
   out <- data.frame(matrix(NA, ncol = 8, nrow = length(levs) * 3))
 
-  out[, 2] <- rep(levs, 3)
+  out[, 2] <- rep(paste0(levs,"C"), 3)
 
   colnames(out) <- c("EF", "No comorbs", "hrci", "p", "loghr", "lci", "uci", "pint")
 
   for (i in seq_along(levsef)) {
-    out[i + ((i - 1) * (length(levs) - 1)), 1] <- levsef[i]
+    out[i + ((i - 1) * (length(levs) - 1)), 1] <- paste0("EF ", levsef[i])
 
     mod <- coxme::coxme(formula(paste0(
       "Surv(", outtime, ",", outvar, " == '", outval, "') ~ nocom_cat * relevel(num_Ef_cat, ref = '", levsef[i], "') + ",
@@ -115,7 +115,7 @@ plotforest <- function(forestdata) {
   axis(2,
     at = 1:nf,
     labels = forestdata$`No comorbs`,
-    cex.axis = cextext, tick = FALSE, las = 2, line = 19.5, hadj = 0
+    cex.axis = cextext, tick = FALSE, las = 2, line = 9.5, hadj = 0
   )
   axis(2,
     at = 1:nf,
@@ -128,16 +128,16 @@ plotforest <- function(forestdata) {
     cex.axis = cextext, tick = FALSE, las = 1, line = .5, hadj = 0.5
   )
 
-  axis(2,
-    at = nf + 1,
-    labels = "EF",
-    cex.axis = cextext, tick = FALSE, las = 2, line = 14, hadj = 0, font = 2
-  )
-  axis(2,
-    at = nf + 1,
-    labels = "No",
-    cex.axis = cextext, tick = FALSE, las = 2, line = 19.5, hadj = 0, font = 2
-  )
+  #axis(2,
+  #  at = nf + 1,
+  #  labels = "EF",
+  #  cex.axis = cextext, tick = FALSE, las = 2, line = 14, hadj = 0, font = 2
+  #)
+  #axis(2,
+  #  at = nf + 1,
+  #  labels = "No",
+  #  cex.axis = cextext, tick = FALSE, las = 2, line = 9.5, hadj = 0, font = 2
+  #)
   axis(2,
     at = nf + 1,
     labels = "HR (95% CI)",
