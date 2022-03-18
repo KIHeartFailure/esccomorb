@@ -14,7 +14,7 @@ kmfunc <- function(data = edata %>% filter(survpop), time, event, eventcr = NULL
     )
 
     # c(bottom, left, top, right)
-    par(mar = c(9, 4, 1, 1) + 0.1)
+    par(mar = c(9, 4, 1, 1.7) + 0.1)
 
     plot(fit[1:5],
       ylab = eventname,
@@ -30,7 +30,7 @@ kmfunc <- function(data = edata %>% filter(survpop), time, event, eventcr = NULL
     )
   } else {
     # c(bottom, left, top, right)
-    par(mar = c(9, 4, 1, 1) + 0.1)
+    par(mar = c(9, 4, 1, 1.7) + 0.1)
     plots <- plot(fits,
       fun = "event",
       ylab = eventname,
@@ -60,7 +60,7 @@ kmfunc <- function(data = edata %>% filter(survpop), time, event, eventcr = NULL
 
   ylabs <- bind_cols(
     ypos = c(ypos + yposplus),
-    ytext = levels(edata %>% pull(nocom_cat))
+    ytext = paste0(levels(edata %>% pull(nocom_cat)), "C")
   )
 
   mtext(
@@ -73,11 +73,11 @@ kmfunc <- function(data = edata %>% filter(survpop), time, event, eventcr = NULL
 
   mtext("No. at risk", side = 1, line = 3, at = -45, adj = 0, cex = 1, font = 2)
 
-  mtext("0", side = 1, line = 4, at = -45, adj = 0, cex = 1)
-  mtext("1", side = 1, line = 5, at = -45, adj = 0, cex = 1)
-  mtext("2", side = 1, line = 6, at = -45, adj = 0, cex = 1)
-  mtext("3", side = 1, line = 7, at = -45, adj = 0, cex = 1)
-  mtext("4+", side = 1, line = 8, at = -45, adj = 0, cex = 1)
+  mtext("0C", side = 1, line = 4, at = -45, adj = 0, cex = 1)
+  mtext("1C", side = 1, line = 5, at = -45, adj = 0, cex = 1)
+  mtext("2C", side = 1, line = 6, at = -45, adj = 0, cex = 1)
+  mtext("3C", side = 1, line = 7, at = -45, adj = 0, cex = 1)
+  mtext("4+C", side = 1, line = 8, at = -45, adj = 0, cex = 1)
 
   nrisk <- summary(fits, seq(0, 12, 2) * 30)$n.risk
 
