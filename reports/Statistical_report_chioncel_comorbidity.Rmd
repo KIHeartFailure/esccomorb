@@ -129,22 +129,17 @@ dichotomous variables.
 For the binomial outcomes (NYHA, LOS and in-hospital mortality) 
 a generalized linear mixed-effects model (GLMM) with a logit link and a random effect for country was used. 
 
-The long-term outcomes are presented with the Kaplan-Meier curves 
-(for outcomes with all-cause death) or cumulative incidence curves (with death as a competing risk). 
+The long-term outcomes are presented with cumulative incidence curves. 
 Cox proportional hazards regressions with a frailty term for country were 
 used to model the time to first event analysis. 
 
 As a consistency analysis the long-term outcomes (not all-cause death)
 was modelled using a sub-distributional hazards model [@fg] where death was treated as a competing event. 
 
-The long-term outcomes were also modelled using Cox proportional hazards regressions with 
-an interaction term between the comorbidity score and EF, thereby enabling separate 
-estimates for each EF group, and presented in a Forest plot. 
-The models were adjusted for the same variables as above. 
-
-The outcome all-cause mortality was further analysed in univariable 
-Cox proportional hazards regressions with each individual non-cardiac 
-comorbity summarizing to the comorbidity score separately in each EF group. 
+The long-term outcomes were also modelled, as above, 
+separately in each EF group and presented in Forest plots. Further, they were 
+analysed with each non-cardiac 
+comorbity individually for the whole population and separately in each EF group and presented in Forest plots. 
 
 Time is from date of discharge, or if this is missing, date of admission and 
 censored at death not defined as an event or follow-up.  
@@ -172,17 +167,13 @@ residuals (cox.zph in [@survival-package]) for the survival outcomes.
 
 \newpage
 
-```{r, child = "../src/outforestef.Rmd"}
-
-```
-
-```{r, child = "../src/outforestefabstract.Rmd"}
+```{r, child = "../src/noforest.Rmd"}
 
 ```
 
 \newpage
 
-```{r, child = "../src/uniforestmort.Rmd"}
+```{r, child = "../src/indforest.Rmd"}
 
 ```
 

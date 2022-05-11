@@ -1,0 +1,267 @@
+
+```{r noforestfunc, cache=cacheon}
+
+noforest <- function(data, outtime, outvar, outval = 1) {
+  levs <- levels(edata$nocom_cat)
+
+  out <- data.frame(matrix(NA, ncol = 7, nrow = length(levs)))
+
+  out[, 1] <- paste0(levs, " Comorbidity")
+
+  colnames(out) <- c("No comorbs", "prop", "hrci", "p", "loghr", "lci", "uci")
+
+  fit <- survfit(formula(paste0("Surv(", outtime, ",", outvar, "=='", outval, "') ~ nocom_cat")),
+    data = data
+  )
+
+  sfit <- summary(fit, times = c(365))
+
+  out[, 2] <- paste0(
+    fn(100 - sfit$surv * 100, dig = 0), " (",
+    fn(100 - sfit$upper * 100, dig = 0), "-",
+    fn(100 - sfit$lower * 100, dig = 0), ")"
+  )
+
+  mod <- coxme::coxme(formula(paste0(
+    "Surv(", outtime, ",", outvar, " == '", outval, "') ~ nocom_cat + ",
+    paste0(modvarsns, collapse = "+"), " + (1 | num_nation)"
+  )),
+  data = data
+  )
+
+  se <- sqrt(diag(vcov(mod)))
+
+  out[, 3] <- c(
+    "ref",
+    paste0(
+      fn(exp(mod$coefficients[1:4]), 1),
+      " (",
+      fn(exp(mod$coefficients[1:4] - global_z05 * se[1:4]), 1),
+      "-",
+      fn(exp(mod$coefficients[1:4] + global_z05 * se[1:4]), 1),
+      ")"
+    )
+  )
+
+  out[, 4] <- c(NA, fn((1 - pnorm(abs(mod$coeff[1:4] / se[1:4]))) * 2, dig = 3, p = TRUE))
+
+  out[, 5] <- c(NA, mod$coefficients[1:4])
+
+  out[, 6] <- c(NA, mod$coefficients[1:4] - global_z05 * se[1:4])
+
+  out[, 7] <- c(NA, mod$coefficients[1:4] + global_z05 * se[1:4])
+
+  forestdata <- out %>%
+    mutate(c = 1:n()) %>%
+    arrange(desc(c))
+
+  nf <- nrow(forestdata)
+
+  cextext <- 1.2
+
+  minmy <- round(exp(min(forestdata$lci, na.rm = T)), 1)
+  maxmy <- round(exp(max(forestdata$uci, na.rm = T)), 1)
+
+  # c(bottom, left, top, right)
+  par(mar = c(4, 25, 0.5, 0.5) + 0.2)
+
+  plot(forestdata$loghr, 1:nf,
+    cex = 2,
+    xlim = c(
+      log(minmy),
+      log(maxmy)
+    ),
+    xlab = "HR (95% CI)",
+    cex.lab = cextext,
+    ylim = c(1, nf + 1),
+    axes = FALSE,
+    ylab = NA,
+    main = NA,
+    type = "p",
+    pch = 22,
+    bg = global_kicols[1],
+    col = global_kicols[1]
+  )
+
+  for (i in 1:nf) {
+    if (!is.na(forestdata$lci[i])) {
+      matplot(c(forestdata$lci[i], forestdata$uci[i]), c(i, i),
+        type = "l", add = TRUE, col = global_kicols[1], lwd = 3
+      )
+    }
+  }
+
+  matplot(c(log(1), log(1)), c(-1, nf + 0.5), type = "l", lwd = 1, lty = 3, add = TRUE, col = 1)
+
+  axismy <- seq(minmy, maxmy, 0.1)
+  axismy2 <- axismy
+  axismy2[!axismy %in% c(minmy, maxmy)] <- NA
+
+  axis(1,
+    cex.axis = cextext, at = log(axismy),
+    labels = axismy2
+  )
+
+  axis(2,
+    at = 1:nf,
+    labels = forestdata$`No comorbs`,
+    cex.axis = cextext, tick = FALSE, las = 2, line = 24, hadj = 0
+  )
+  axis(2,
+    at = 1:nf,
+    labels = forestdata$prop,
+    cex.axis = cextext, tick = FALSE, las = 2, line = 13.5, hadj = 0.5
+  )
+  axis(2,
+    at = 1:nf,
+    labels = forestdata$hrci,
+    cex.axis = cextext, tick = FALSE, las = 2, line = 6.5, hadj = 0.5
+  )
+  axis(2,
+    at = 1:nf,
+    labels = forestdata$p,
+    cex.axis = cextext, tick = FALSE, las = 1, line = 1, hadj = 0.5
+  )
+
+  # axis(2,
+  #     at = nf + 1,
+  #     labels = "No comorbs",
+  #     cex.axis = cextext, tick = FALSE, las = 2, line = 14, hadj = 0, font = 2
+  # )
+  axis(2,
+    at = nf + 1,
+    labels = "% Event (95% CI)",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 13.5, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = nf + 1,
+    labels = "HR (95% CI)",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 6.5, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = nf + 1,
+    labels = "P-value",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 1, hadj = 0.5, font = 2
+  )
+}
+```
+
+```{r noforestmort, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and all-cause mortality"}
+noforest(
+  data = edata %>% filter(survpop), outvar = "out_death", outtime = "outtime_death"
+)
+```
+
+```{r noforestmortref, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and all-cause mortality - rEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%"), outvar = "out_death", outtime = "outtime_death"
+)
+```
+
+```{r noforestmortmref, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and all-cause mortality - mrEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == "41-49%"), outvar = "out_death", outtime = "outtime_death"
+)
+```
+
+```{r noforestmortpef, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and all-cause mortality - pEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == ">=50%"), outvar = "out_death", outtime = "outtime_death"
+)
+```
+
+```{r noforesthosp, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and all-cause hospitalization"}
+noforest(
+  data = edata %>% filter(survpop), outvar = "out_hosp", outtime = "outtime_hosp"
+)
+```
+
+```{r noforesthospref, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and all-cause hospitalization - rEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%"), outvar = "out_hosp", outtime = "outtime_hosp"
+)
+```
+
+```{r noforesthospmref, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and all-cause hospitalization - mrEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == "41-49%"), outvar = "out_hosp", outtime = "outtime_hosp"
+)
+```
+
+```{r noforesthosppef, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and all-cause hospitalization - pEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == ">=50%"), outvar = "out_hosp", outtime = "outtime_hosp"
+)
+```
+
+```{r noforestcvmort, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and CV mortality"}
+noforest(
+  data = edata %>% filter(survpop), outvar = "out_deathcv", outtime = "outtime_death"
+)
+```
+
+```{r noforestcvmortref, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and CV mortality - rEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%"), outvar = "out_deathcv", outtime = "outtime_death"
+)
+```
+
+```{r noforestcvmortmref, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and CV mortality - mrEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == "41-49%"), outvar = "out_deathcv", outtime = "outtime_death"
+)
+```
+
+```{r noforestcvmortpef, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and CV mortality - pEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == ">=50%"), outvar = "out_deathcv", outtime = "outtime_death"
+)
+```
+
+```{r noforesthosphf, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and HF hospitalization"}
+noforest(
+  data = edata %>% filter(survpop), outvar = "out_hosphf", outtime = "outtime_hosphf"
+)
+```
+
+```{r noforesthoshfpref, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and HF hospitalization - rEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%"), outvar = "out_hosphf", outtime = "outtime_hosphf"
+)
+```
+
+```{r noforesthosphfmref, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and HF hospitalization - mrEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == "41-49%"), outvar = "out_hosphf", outtime = "outtime_hosphf"
+)
+```
+
+```{r noforesthosphfpef, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and HF hospitalization - pEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == ">=50%"), outvar = "out_hosphf", outtime = "outtime_hosphf"
+)
+```
+
+```{r noforestdeathhosphf, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and all-cause mortality/HF hospitalization"}
+noforest(
+  data = edata %>% filter(survpop), outvar = "out_deathhosphf", outtime = "outtime_hosphf"
+)
+```
+
+```{r noforestdeathhoshfpref, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and HF hospitalization - rEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == "<41%"), outvar = "out_deathhosphf", outtime = "outtime_hosphf"
+)
+```
+
+```{r noforestdeathhosphfmref, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and HF hospitalization - mrEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == "41-49%"), outvar = "out_deathhosphf", outtime = "outtime_hosphf"
+)
+```
+
+```{r noforestdeathhosphfpef, cache=cacheon, dependson="noforestfunc", fig.cap="Association between number of non-cardiac comorbidities and HF hospitalization - pEF"}
+noforest(
+  data = edata %>% filter(survpop & num_Ef_cat == ">=50%"), outvar = "out_deathhosphf", outtime = "outtime_hosphf"
+)
+```
