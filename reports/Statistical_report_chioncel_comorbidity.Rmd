@@ -109,16 +109,17 @@ to death or last follow-up were set to death or last follow-up.
 
 The following outcomes are considered: 
 
-- NYHA at admission
-- NYHA at discharge
-- Change in NYHA
-- In-hospital mortality
-- Length of stay at index hospitalization >= 7 days
-- 1 year (approx) All-cause mortality
-- 1 year (approx) All-cause hospitalisations
-- 1 year (approx) CV mortality
-- 1 year (approx) HF hospitalisations
-- 1 year (approx) All-cause mortality/HF hospitalisations
+- NYHA at admission (all population)
+- NYHA at discharge (discharge population)
+- Change in NYHA (discharge population)
+- In-hospital mortality (all population)
+- Length of stay at index hospitalization >= 7 days (all population)
+- 1 year (approx) All-cause mortality (long-term outcome population)
+- 1 year (approx) All-cause hospitalisations (long-term outcome population)
+- 1 year (approx) CV mortality (long-term outcome population)
+- 1 year (approx) HF hospitalisations (long-term outcome population)
+- 1 year (approx) All-cause mortality/HF hospitalisations (long-term outcome population)
+
 
 For all models adjustment is performed for `r paste(modvars, collapse = ", ")` where 
 the continuous variables are modelled using cubic splines with 4 degrees of freedom. 

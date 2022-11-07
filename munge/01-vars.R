@@ -6,6 +6,7 @@ tabvars <- c(
   "num_dmgender",
   "num_dmSmoking_cat",
   "d_HFdiagnosis",
+  "num_hsHFstat",
   "num_dmEtio",
   "num_dmEtio_c1",
   "num_dmHT",
@@ -98,6 +99,8 @@ tabvars <- c(
   "num_dcCrp",
   "num_hsWbc",
   "num_dcWbc",
+  "num_hsGl",
+  "num_dcGl",
 
   # meds
   "num_mdBBp",
