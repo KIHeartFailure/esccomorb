@@ -3,61 +3,97 @@
 kmfunc <- function(data = edata %>% filter(survpop), time, event, eventname, yposplus = rep(0, 5)) {
   fits <- survfit(formula(paste0("Surv(", time, ",", event, "== 1) ~ nocom_cat")),
     data = data
-  ) # needed also for cuminc for n at risk
-
-    # c(bottom, left, top, right)
-    par(mar = c(9, 4, 1, 1.7) + 0.1)
-    plots <- plot(fits,
-      fun = "event",
-      ylab = eventname,
-      xscale = 30,
-      yscale = 100,
-      col = c(rev(global_kicols[1:4]), 1),
-      mark.time = FALSE,
-      bty = "n",
-      xlim = c(0, 12 * 30),
-      ylim = c(0, 1),
-      xlab = "Months",
-      axes = F,
-      lwd = 3,
-      lty = c(3, 4, 2, 5, 1),
-      xaxs = "i", yaxs = "i"
-    )
-
-  axis(2, seq(0, 1, 0.1), seq(0, 100, 10), las = 2)
-  axis(1, at = seq(0, 12, 1) * 30, seq(0, 12, 1))
-
-    ypos <- 1 - summary(fits, 364, expand = T)$surv
-
-
-  ylabs <- bind_cols(
-    ypos = c(ypos + yposplus),
-    ytext = paste0(levels(edata %>% pull(nocom_cat)), "C")
   )
 
-  mtext(
-    side = 4,
-    line = .2,
-    at = ylabs$ypos,
-    ylabs$ytext,
-    las = 1
+  mod <- coxme::coxme(formula(paste0(
+    "Surv(", time, ",", event, " == 1) ~ nocom_cat  + ",
+    paste0(modvarsns, collapse = "+"), " + (1 | num_nation)"
+  )),
+  data = data
+  )
+  se <- sqrt(diag(vcov(mod)))
+
+  rownos <- str_detect(names(mod$coefficients), "nocom_cat")
+
+  hrprint <- c(
+    "ref",
+    paste0(
+      fn(exp(mod$coefficients[rownos]), 1),
+      " (",
+      fn(exp(mod$coefficients[rownos] - global_z05 * se[rownos]), 1),
+      "-",
+      fn(exp(mod$coefficients[rownos] + global_z05 * se[rownos]), 1),
+      "), ",
+      fn((1 - pnorm(abs(mod$coeff[rownos] / se[rownos]))) * 2, dig = 3, p = TRUE)
+    )
+  )
+
+
+  # c(bottom, left, top, right)
+  par(mar = c(9, 4, 0.5, 0.5) + 0.1)
+  plots <- plot(fits,
+    fun = "event",
+    ylab = eventname,
+    xscale = 30,
+    yscale = 100,
+    col = global_cols[c(8, 6, 4, 2, 1)],
+    mark.time = FALSE,
+    bty = "n",
+    xlim = c(0, 12 * 30),
+    ylim = c(0, 1),
+    xlab = "Follow-up (months)",
+    axes = F,
+    lwd = 3,
+    lty = c(3, 4, 2, 5, 1),
+    xaxs = "i", yaxs = "i"
+  )
+
+  axis(2, seq(0, 1, 0.1), seq(0, 100, 10), las = 2)
+  axis(1, at = seq(0, 12, 2) * 30, seq(0, 12, 2))
+
+  levs <- levels(edata %>% pull(nocom_cat))
+
+  legend(
+    x = 5.5 * 30, y = 1, c("Adjusted HR (95% CI), p-value", hrprint),
+    cex = 1, adj = 0.5, bty = "n"
+  )
+  legend(
+    x = 0.5, y = 1, bty = "n", c("", paste0(levs, " Comorbidity")), 
+    lty = c(NA, 3, 4, 2, 5, 1),
+    col = c("white", global_cols[c(8, 6, 4, 2, 1)]), cex = 1, lwd = 4,
+    text.col = c("white", global_cols[c(8, 6, 4, 2, 1)])
   )
 
   mtext("No. at risk", side = 1, line = 3, at = -45, adj = 0, cex = 1, font = 2)
 
-  mtext("0C", side = 1, line = 4, at = -45, adj = 0, cex = 1)
-  mtext("1C", side = 1, line = 5, at = -45, adj = 0, cex = 1)
-  mtext("2C", side = 1, line = 6, at = -45, adj = 0, cex = 1)
-  mtext("3C", side = 1, line = 7, at = -45, adj = 0, cex = 1)
-  mtext("4+C", side = 1, line = 8, at = -45, adj = 0, cex = 1)
+  mtext("0C", side = 1, line = 4, at = -45, adj = 0, cex = 1, col = global_cols[8])
+  mtext("1C", side = 1, line = 5, at = -45, adj = 0, cex = 1, col = global_cols[5])
+  mtext("2C", side = 1, line = 6, at = -45, adj = 0, cex = 1, col = global_cols[4])
+  mtext("3C", side = 1, line = 7, at = -45, adj = 0, cex = 1, col = global_cols[2])
+  mtext("4+C", side = 1, line = 8, at = -45, adj = 0, cex = 1, col = global_cols[1])
 
-  nrisk <- summary(fits, seq(0, 12, 2) * 30)$n.risk
+  nrisk <- summary(fits, seq(0, 12, 2) * 30, extend = T)
 
-  axis(1, at = seq(0, 12, 2) * 30, labels = nrisk[1:(7 * 1)], line = 3, tick = FALSE, cex.axis = 1)
-  axis(1, at = seq(0, 12, 2) * 30, labels = nrisk[(7 + 1):(7 * 2)], line = 4, tick = FALSE, cex.axis = 1)
-  axis(1, at = seq(0, 12, 2) * 30, labels = nrisk[(7 * 2 + 1):(7 * 3)], line = 5, tick = FALSE, cex.axis = 1)
-  axis(1, at = seq(0, 12, 2) * 30, labels = nrisk[(7 * 3 + 1):(7 * 4)], line = 6, tick = FALSE, cex.axis = 1)
-  axis(1, at = seq(0, 12, 2) * 30, labels = nrisk[(7 * 4 + 1):(7 * 5)], line = 7, tick = FALSE, cex.axis = 1)
+  axis(1,
+    at = seq(0, 12, 2) * 30, labels = nrisk$n.risk[nrisk$strata == paste0("nocom_cat=", levs[1])],
+    line = 3, tick = FALSE, cex.axis = 1
+  )
+  axis(1,
+    at = seq(0, 12, 2) * 30, labels = nrisk$n.risk[nrisk$strata == paste0("nocom_cat=", levs[2])],
+    line = 4, tick = FALSE, cex.axis = 1
+  )
+  axis(1,
+    at = seq(0, 12, 2) * 30, labels = nrisk$n.risk[nrisk$strata == paste0("nocom_cat=", levs[3])],
+    line = 5, tick = FALSE, cex.axis = 1
+  )
+  axis(1,
+    at = seq(0, 12, 2) * 30, labels = nrisk$n.risk[nrisk$strata == paste0("nocom_cat=", levs[4])],
+    line = 6, tick = FALSE, cex.axis = 1
+  )
+  axis(1,
+    at = seq(0, 12, 2) * 30, labels = nrisk$n.risk[nrisk$strata == paste0("nocom_cat=", levs[5])],
+    line = 7, tick = FALSE, cex.axis = 1
+  )
 }
 ```
 
@@ -65,8 +101,7 @@ kmfunc <- function(data = edata %>% filter(survpop), time, event, eventname, ypo
 kmfunc(
   time = "outtime_death",
   event = "out_death",
-  eventname = "All-cause mortality (%)",
-  yposplus = c(0, 0, 0, 0, 0.003)
+  eventname = "All-cause mortality (%)"
 )
 ```
 
@@ -74,8 +109,7 @@ kmfunc(
 kmfunc(
   time = "outtime_hosp",
   event = "out_hosp",
-  eventname = "First all-cause hospitalization (%)",
-  yposplus = c(-0.007, 0.007, 0, 0, 0)
+  eventname = "First all-cause hospitalization (%)"
 )
 ```
 
@@ -83,8 +117,7 @@ kmfunc(
 kmfunc(
   time = "outtime_death",
   event = "out_deathcv",
-  eventname = "CV mortality (%)",
-  yposplus = c(0, -0.005, 0.005, -0.01, 0.01)
+  eventname = "CV mortality (%)"
 )
 ```
 
@@ -92,8 +125,7 @@ kmfunc(
 kmfunc(
   time = "outtime_hosphf",
   event = "out_hosphf",
-  eventname = "First HF hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  eventname = "First HF hospitalization (%)"
 )
 ```
 
@@ -101,8 +133,7 @@ kmfunc(
 kmfunc(
   time = "outtime_hosphf",
   event = "out_deathhosphf",
-  eventname = "All-cause mortality/first HF hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  eventname = "All-cause mortality/first HF hospitalization (%)"
 )
 ```
 
@@ -111,8 +142,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == "<41%"),
   time = "outtime_death",
   event = "out_death",
-  eventname = "All-cause mortality (%)",
-  yposplus = c(0, -0.005, 0.005, 0, 0)
+  eventname = "All-cause mortality (%)"
 )
 ```
 
@@ -121,8 +151,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == "<41%"),
   time = "outtime_hosp",
   event = "out_hosp",
-  eventname = "First all-cause hospitalization (%)",
-  yposplus = c(-0.013, 0.013, 0, -0.005, 0.005)
+  eventname = "First all-cause hospitalization (%)"
 )
 ```
 
@@ -131,8 +160,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == "<41%"),
   time = "outtime_death",
   event = "out_deathcv",
-  eventname = "CV mortality (%)",
-  yposplus = c(0, -0.01, 0.01, -0.01, 0.01)
+  eventname = "CV mortality (%)"
 )
 ```
 
@@ -141,8 +169,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == "<41%"),
   time = "outtime_hosphf",
   event = "out_hosphf",
-  eventname = "First HF hospitalization (%)",
-  yposplus = c(-0.01, 0, 0, -0.005, 0.005)
+  eventname = "First HF hospitalization (%)"
 )
 ```
 
@@ -151,8 +178,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == "<41%"),
   time = "outtime_hosphf",
   event = "out_deathhosphf",
-  eventname = "All-cause mortality/first HF hospitalization (%)",
-  yposplus = c(0, -0.005, 0.005, 0, 0)
+  eventname = "All-cause mortality/first HF hospitalization (%)"
 )
 ```
 
@@ -161,8 +187,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == "41-49%"),
   time = "outtime_death",
   event = "out_death",
-  eventname = "All-cause mortality (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  eventname = "All-cause mortality (%)"
 )
 ```
 
@@ -171,8 +196,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == "41-49%"),
   time = "outtime_hosp",
   event = "out_hosp",
-  eventname = "First all-cause hospitalization (%)",
-  yposplus = c(-0.01, 0.01, -0.019, 0.019, 0)
+  eventname = "First all-cause hospitalization (%)"
 )
 ```
 
@@ -181,8 +205,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == "41-49%"),
   time = "outtime_death",
   event = "out_deathcv",
-  eventname = "CV mortality (%)",
-  yposplus = c(0, -0.01, 0.014, 0, 0)
+  eventname = "CV mortality (%)"
 )
 ```
 
@@ -191,8 +214,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == "41-49%"),
   time = "outtime_hosphf",
   event = "out_hosphf",
-  eventname = "First HF hospitalization (%)",
-  yposplus = c(0, 0, -0.01, 0, 0)
+  eventname = "First HF hospitalization (%)"
 )
 ```
 
@@ -201,8 +223,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == "41-49%"),
   time = "outtime_hosphf",
   event = "out_deathhosphf",
-  eventname = "All-cause mortality/first HF hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  eventname = "All-cause mortality/first HF hospitalization (%)"
 )
 ```
 
@@ -211,8 +232,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == ">=50%"),
   time = "outtime_death",
   event = "out_death",
-  eventname = "All-cause mortality (%)",
-  yposplus = c(0, 0, 0, 0, 0.01)
+  eventname = "All-cause mortality (%)"
 )
 ```
 
@@ -221,8 +241,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == ">=50%"),
   time = "outtime_hosp",
   event = "out_hosp",
-  eventname = "First all-cause hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  eventname = "First all-cause hospitalization (%)"
 )
 ```
 
@@ -231,8 +250,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == ">=50%"),
   time = "outtime_death",
   event = "out_deathcv",
-  eventname = "CV mortality (%)",
-  yposplus = c(-0.005, -0.005, -0.005, 0.005, 0.005)
+  eventname = "CV mortality (%)"
 )
 ```
 
@@ -241,8 +259,7 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == ">=50%"),
   time = "outtime_hosphf",
   event = "out_hosphf",
-  eventname = "First HF hospitalization (%)",
-  yposplus = c(0, 0, -0.005, 0, 0)
+  eventname = "First HF hospitalization (%)"
 )
 ```
 
@@ -251,7 +268,6 @@ kmfunc(
   data = edata %>% filter(survpop & num_Ef_cat == ">=50%"),
   time = "outtime_hosphf",
   event = "out_deathhosphf",
-  eventname = "All-cause mortality/first HF hospitalization (%)",
-  yposplus = c(0, 0, 0, 0, 0)
+  eventname = "All-cause mortality/first HF hospitalization (%)"
 )
 ```

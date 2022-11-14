@@ -45,53 +45,49 @@ noforest <- function(data, outtime, outvar, outval = 1) {
 
   out[, 4] <- c(NA, fn((1 - pnorm(abs(mod$coeff[1:4] / se[1:4]))) * 2, dig = 3, p = TRUE))
 
-  out[, 5] <- c(NA, mod$coefficients[1:4])
+  out[, 5] <- c(0, mod$coefficients[1:4])
 
-  out[, 6] <- c(NA, mod$coefficients[1:4] - global_z05 * se[1:4])
+  out[, 6] <- c(0, mod$coefficients[1:4] - global_z05 * se[1:4])
 
-  out[, 7] <- c(NA, mod$coefficients[1:4] + global_z05 * se[1:4])
+  out[, 7] <- c(0, mod$coefficients[1:4] + global_z05 * se[1:4])
 
   forestdata <- out %>%
-    mutate(c = 1:n()) %>%
-    arrange(desc(c))
+    mutate(c = n():1)
 
   nf <- nrow(forestdata)
 
   cextext <- 1.2
 
-  minmy <- round(exp(min(forestdata$lci, na.rm = T)), 1)
+  minmy <- min(round(exp(min(forestdata$lci, na.rm = T)), 1), 1)
   maxmy <- round(exp(max(forestdata$uci, na.rm = T)), 1)
 
   # c(bottom, left, top, right)
   par(mar = c(4, 25, 0.5, 0.5) + 0.2)
 
-  plot(forestdata$loghr, 1:nf,
+  gplots::plotCI(
+    x = forestdata$loghr, y = forestdata$c,
+    li = forestdata$lci,
+    ui = forestdata$uci,
+    err = "x",
     cex = 2,
     xlim = c(
       log(minmy),
       log(maxmy)
     ),
-    xlab = "HR (95% CI)",
-    cex.lab = cextext,
+    xlab = "",
     ylim = c(1, nf + 1),
     axes = FALSE,
-    ylab = NA,
+    ylab = "",
     main = NA,
-    type = "p",
     pch = 22,
-    bg = global_kicols[1],
-    col = global_kicols[1]
+    pt.bg = global_cols[2],
+    col = global_cols[2],
+    lwd = 2,
+    cex.lab = cextext, 
+    gap = 0
   )
 
-  for (i in 1:nf) {
-    if (!is.na(forestdata$lci[i])) {
-      matplot(c(forestdata$lci[i], forestdata$uci[i]), c(i, i),
-        type = "l", add = TRUE, col = global_kicols[1], lwd = 3
-      )
-    }
-  }
-
-  matplot(c(log(1), log(1)), c(-1, nf + 0.5), type = "l", lwd = 1, lty = 3, add = TRUE, col = 1)
+  matplot(c(log(1), log(1)), c(-1, nf + 0.5), type = "l", lwd = 2, lty = 3, add = TRUE, col = 1)
 
   axismy <- seq(minmy, maxmy, 0.1)
   axismy2 <- axismy
@@ -103,31 +99,26 @@ noforest <- function(data, outtime, outvar, outval = 1) {
   )
 
   axis(2,
-    at = 1:nf,
+    at = forestdata$c,
     labels = forestdata$`No comorbs`,
     cex.axis = cextext, tick = FALSE, las = 2, line = 24, hadj = 0
   )
   axis(2,
-    at = 1:nf,
+    at = forestdata$c,
     labels = forestdata$prop,
     cex.axis = cextext, tick = FALSE, las = 2, line = 13.5, hadj = 0.5
   )
   axis(2,
-    at = 1:nf,
+    at = forestdata$c,
     labels = forestdata$hrci,
     cex.axis = cextext, tick = FALSE, las = 2, line = 6.5, hadj = 0.5
   )
   axis(2,
-    at = 1:nf,
+    at = forestdata$c,
     labels = forestdata$p,
     cex.axis = cextext, tick = FALSE, las = 1, line = 1, hadj = 0.5
   )
 
-  # axis(2,
-  #     at = nf + 1,
-  #     labels = "No comorbs",
-  #     cex.axis = cextext, tick = FALSE, las = 2, line = 14, hadj = 0, font = 2
-  # )
   axis(2,
     at = nf + 1,
     labels = "% Event (95% CI)",

@@ -63,19 +63,22 @@ indforest <- function(data, outtime, outvar, outval = 1) {
       var == "num_dmPvd" ~ "PVD",
       var == "num_dmRheu" ~ "Rheumatoid arthritis",
       var == "anemia" ~ "Anemia"
-    )) # %>%
-  # arrange(loghr)
+    ), 
+    c = 1:n()) 
 
   cextext <- 1
 
-  minmy <- round(exp(min(forestdata$lci, na.rm = T)), 1)
+  minmy <- min(round(exp(min(forestdata$lci, na.rm = T)), 1), 1)
   maxmy <- round(exp(max(forestdata$uci, na.rm = T)), 1)
 
   # c(bottom, left, top, right)
   par(mar = c(4, 25, 0.5, 0.5) + 0.2)
 
-
-  plot(forestdata$loghr, 1:nrow(forestdata),
+ gplots::plotCI(
+    x = forestdata$loghr, y = forestdata$c,
+    li = forestdata$lci,
+    ui = forestdata$uci,
+    err = "x",
     cex = 1.5,
     xlim = c(
       log(minmy),
@@ -84,23 +87,17 @@ indforest <- function(data, outtime, outvar, outval = 1) {
     xlab = "HR (95% CI)",
     ylim = c(1, nrow(forestdata) + 1),
     axes = FALSE,
-    ylab = NA,
+    ylab = "",
     main = NA,
-    type = "p",
     pch = 22,
-    bg = global_kicols[1],
-    col = global_kicols[1]
+    pt.bg = global_cols[2],
+    col = global_cols[2],
+    lwd = 2,
+    cex.lab = cextext, 
+    gap = 0
   )
 
-  for (i in 1:nrow(forestdata)) {
-    if (!is.na(forestdata$lci)[i]) {
-      matplot(c(forestdata$lci[i], forestdata$uci[i]), c(i, i),
-        type = "l", add = TRUE, col = global_kicols[1], lwd = 2
-      )
-    }
-  }
-
-  matplot(c(log(1), log(1)), c(-1, nrow(forestdata) + 0.5), type = "l", lwd = 1, lty = 3, add = TRUE, col = 1)
+  matplot(c(log(1), log(1)), c(-1, nrow(forestdata) + 0.5), type = "l", lwd = 2, lty = 3, add = TRUE, col = 1)
 
   axismy <- seq(minmy, maxmy, 0.1)
   axismy2 <- axismy
@@ -137,22 +134,22 @@ indforest <- function(data, outtime, outvar, outval = 1) {
   )
 
   axis(2,
-    at = 1:nrow(forestdata),
+    at = forestdata$c,
     labels = forestdata$Variable,
     cex.axis = cextext, tick = FALSE, las = 2, line = 24, hadj = 0
   )
   axis(2,
-    at = 1:nrow(forestdata),
+    at = forestdata$c,
     labels = forestdata$prop,
     cex.axis = cextext, tick = FALSE, las = 2, line = 12, hadj = 0.5
   )
   axis(2,
-    at = 1:nrow(forestdata),
+    at = forestdata$c,
     labels = forestdata$hrci,
     cex.axis = cextext, tick = FALSE, las = 2, line = 4.7, hadj = 0.5
   )
   axis(2,
-    at = 1:nrow(forestdata),
+    at = forestdata$c,
     labels = forestdata$p,
     cex.axis = cextext, tick = FALSE, las = 1, line = 0.5, hadj = 0.5
   )

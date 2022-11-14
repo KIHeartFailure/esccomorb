@@ -5,6 +5,7 @@ author: 'Statistician: Lina Benson'
 date: "`r Sys.Date()`"
 output:
   pdf_document:
+    dev: cairo_pdf
     fig_caption: yes
     fig_height: 7
     fig_width: 7

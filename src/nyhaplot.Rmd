@@ -10,7 +10,8 @@ bardata <- edata %>%
     freq = if_else(is.nan(freq), 0, freq)
   ) %>%
   ungroup() %>%
-  mutate(EFnocom = paste(as.numeric(num_Ef_cat), as.numeric(nocom_cat)))
+  mutate(EFnocom = paste(as.numeric(num_Ef_cat), as.numeric(nocom_cat)), 
+         num_Ef_cat = str_replace_all(num_Ef_cat, ">=", "\u2265"))
 
 ggplot(
   bardata,
@@ -23,7 +24,7 @@ ggplot(
   annotate(geom = "text", x = c(3, 8, 13), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
   scale_fill_manual("NYHA class",
     labels = levels(edata$num_hsNyha),
-    values = rev(global_kicols[c(2, 3, 4)])
+    values = rev(global_cols[c(4, 5, 6)])
   ) +
   theme_minimal() +
   ylab("Percent") +
@@ -48,7 +49,8 @@ bardata <- edata %>%
     freq = if_else(is.nan(freq), 0, freq)
   ) %>%
   ungroup() %>%
-  mutate(EFnocom = paste(as.numeric(num_Ef_cat), as.numeric(nocom_cat)))
+  mutate(EFnocom = paste(as.numeric(num_Ef_cat), as.numeric(nocom_cat)), 
+         num_Ef_cat = str_replace_all(num_Ef_cat, ">=", "\u2265"))
 
 ggplot(
   bardata,
@@ -61,7 +63,7 @@ ggplot(
   annotate(geom = "text", x = c(3, 8, 13), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
   scale_fill_manual("NYHA class",
     labels = levels(edata$num_dcNyha),
-    values = rev(global_kicols[c(2, 3, 4, 6)])
+    values = rev(global_cols[c(4, 5, 6, 7)])
   ) +
   theme_minimal() +
   ylab("Percent") +
@@ -86,7 +88,8 @@ bardata <- edata %>%
     freq = if_else(is.nan(freq), 0, freq)
   ) %>%
   ungroup() %>%
-  mutate(EFnocom = paste(as.numeric(num_Ef_cat), as.numeric(nocom_cat)))
+  mutate(EFnocom = paste(as.numeric(num_Ef_cat), as.numeric(nocom_cat)), 
+         num_Ef_cat = str_replace_all(num_Ef_cat, ">=", "\u2265"))
 
 ggplot(
   bardata,
@@ -99,7 +102,7 @@ ggplot(
   annotate(geom = "text", x = c(3, 8, 13), y = -11, label = paste0("EF ", unique(bardata$num_Ef_cat)), size = 4) +
   scale_fill_manual("Decrease in\nNYHA class",
     labels = levels(edata$decrease_Nyha),
-    values = rev(global_kicols[c(4, 3)])
+    values = rev(global_cols[c(4, 5)])
   ) +
   theme_minimal() +
   ylab("Percent") +
