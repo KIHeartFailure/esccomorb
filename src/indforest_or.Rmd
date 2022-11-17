@@ -1,0 +1,178 @@
+```{r indforestorfunc, cache=cacheon}
+indforestor <- function(data, novars = "test") {
+  out <- data.frame(matrix(NA, ncol = 7, nrow = length(comorbs)))
+
+  colnames(out) <- c("var", "orci", "p", "logor", "lci", "uci", "prop")
+
+  for (i in seq_along(comorbs)) {
+    out[i, 1] <- comorbs[i]
+    np <- data %>%
+      filter(!is.na(out_death_inhosp)) %>%
+      group_by(!!sym(comorbs[i]), ) %>%
+      count(out_death_inhosp, .drop = F) %>%
+      mutate(
+        p = fn(n / sum(n) * 100, 1),
+        np = paste0(n, " (", p, "%)")
+      ) %>%
+      filter(out_death_inhosp == "Yes")
+
+    out[i, 7] <- paste0(np$np, collapse = "/")
+
+    if (comorbs[i] != novars) {
+      mod <- summary(lme4::glmer(formula(paste0("out_death_inhosp == 'Yes' ~ ", comorbs[i], " + (1 | num_nation)")),
+        family = "binomial",
+        data = data
+      ))
+
+      out[i, 2] <- paste0(
+        fn(exp(mod$coefficients[2, 1]), 1),
+        " (",
+        fn(exp(mod$coefficients[2, 1] - global_z05 * mod$coefficients[2, 2]), 1),
+        "-",
+        fn(exp(mod$coefficients[2, 1] + global_z05 * mod$coefficients[2, 2]), 1),
+        ")"
+      )
+
+      out[i, 3] <- fn(mod$coefficients[2, 4], dig = 3, p = T)
+
+      out[i, 4] <- mod$coefficients[2, 1]
+
+      out[i, 5] <- mod$coefficients[2, 1] - global_z05 * mod$coefficients[2, 2]
+
+      out[i, 6] <- mod$coefficients[2, 1] + global_z05 * mod$coefficients[2, 2]
+    }
+  }
+
+  # fix names
+  forestdata <- out %>%
+    mutate(
+      Variable = case_when(
+        var == "num_dmDiab_c1" ~ "Diabetes",
+        var == "num_dmCopd" ~ "COPD",
+        var == "num_dmHyChol" ~ "Kidney dysfunction",
+        var == "num_dmHepa" ~ "Hepatic dysfunction",
+        var == "num_dmDis" ~ "Current malignancy",
+        var == "num_dmApn" ~ "Sleep apnea",
+        var == "num_dmPark" ~ "Parkinson",
+        var == "num_dmDepr" ~ "Depression",
+        var == "num_dmStroke" ~ "Stroke/TIA",
+        var == "num_dmPvd" ~ "PVD",
+        var == "num_dmRheu" ~ "Rheumatoid arthritis",
+        var == "anemia" ~ "Anemia"
+      ),
+      c = 1:n()
+    )
+
+  cextext <- 1
+
+  minmy <- min(round(exp(min(forestdata$lci, na.rm = T)), 1), 1)
+  maxmy <- round(exp(max(forestdata$uci, na.rm = T)), 1)
+
+  # c(bottom, left, top, right)
+  par(mar = c(4, 25, 0.5, 0.5) + 0.2)
+
+  gplots::plotCI(
+    x = forestdata$logor, y = forestdata$c,
+    li = forestdata$lci,
+    ui = forestdata$uci,
+    err = "x",
+    cex = 1.5,
+    xlim = c(
+      log(minmy),
+      log(maxmy)
+    ),
+    xlab = "OR (95% CI)",
+    ylim = c(1, nrow(forestdata) + 1),
+    axes = FALSE,
+    ylab = "",
+    main = NA,
+    pch = 22,
+    pt.bg = global_cols[2],
+    col = global_cols[2],
+    lwd = 2,
+    cex.lab = cextext,
+    gap = 0
+  )
+
+  matplot(c(log(1), log(1)), c(-1, nrow(forestdata) + 0.5), type = "l", lwd = 2, lty = 3, add = TRUE, col = 1)
+
+  axismy <- seq(minmy, maxmy, 0.1)
+  axismy2 <- axismy
+  axismy2[!axismy %in% c(minmy, maxmy)] <- NA
+
+  axis(1,
+    cex.axis = cextext, at = log(axismy),
+    labels = axismy2
+  )
+  axis(1,
+    cex.axis = cextext, at = log(1),
+    labels = 1
+  )
+
+  axis(2,
+    at = nrow(forestdata) + 1,
+    labels = "Comorbidity",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 24, hadj = 0, font = 2
+  )
+  axis(2,
+    at = nrow(forestdata) + 1,
+    labels = "% Event (95% CI)",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 12, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = nrow(forestdata) + 1,
+    labels = "OR (95% CI)",
+    cex.axis = cextext, tick = FALSE, las = 2, line = 4.7, hadj = 0.5, font = 2
+  )
+  axis(2,
+    at = nrow(forestdata) + 1,
+    labels = "P-value",
+    cex.axis = cextext, tick = FALSE, las = 1, line = 0.5, hadj = 0.5, font = 2
+  )
+
+  axis(2,
+    at = forestdata$c,
+    labels = forestdata$Variable,
+    cex.axis = cextext, tick = FALSE, las = 2, line = 24, hadj = 0
+  )
+  axis(2,
+    at = forestdata$c,
+    labels = forestdata$prop,
+    cex.axis = cextext, tick = FALSE, las = 2, line = 12, hadj = 0.5
+  )
+  axis(2,
+    at = forestdata$c,
+    labels = forestdata$orci,
+    cex.axis = cextext, tick = FALSE, las = 2, line = 4.7, hadj = 0.5
+  )
+  axis(2,
+    at = forestdata$c,
+    labels = forestdata$p,
+    cex.axis = cextext, tick = FALSE, las = 1, line = 0.5, hadj = 0.5
+  )
+}
+```
+
+```{r indforestinhospmort, cache=cacheon, dependson="indforestorfunc", fig.cap="Association between individual non-cardiac comorbidities and in-hospital mortality"}
+indforestor(
+  data = edata
+)
+```
+
+```{r indforestinhospmortref, cache=cacheon, dependson="indforestorfunc", fig.cap="Association between individual non-cardiac comorbidities and in-hospital mortality - rEF"}
+indforestor(
+  data = edata %>% filter(num_Ef_cat == "<41%")
+)
+```
+
+```{r indforestinhospmortmref, cache=cacheon, dependson="indforestorfunc", fig.cap="Association between individual non-cardiac comorbidities and in-hospital mortality - mrEF"}
+indforestor(
+  data = edata %>% filter(num_Ef_cat == "41-49%"), novars = "num_dmApn"
+)
+```
+
+```{r indforestinhospmortpef, cache=cacheon, dependson="indforestorfunc", fig.cap="Association between individual non-cardiac comorbidities and in-hospital mortality - pEF"}
+indforestor(
+  data = edata %>% filter(num_Ef_cat == ">=50%")
+)
+```

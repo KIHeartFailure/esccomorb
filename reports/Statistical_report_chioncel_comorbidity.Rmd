@@ -179,6 +179,10 @@ residuals (cox.zph in [@survival-package]) for the survival outcomes.
 
 ```
 
+```{r, child = "../src/indforest_or.Rmd"}
+
+```
+
 \newpage
 
 ```{r, child = "../src/km.Rmd"}
