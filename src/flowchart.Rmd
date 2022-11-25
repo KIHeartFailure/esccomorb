@@ -1,0 +1,86 @@
+```{r flowchart, cache=cacheon, fig.cap="Flow chart"}
+
+fc <- grViz(paste0(
+  "digraph my_flowchart {
+      graph[splines = ortho]
+      node [fontname = Helvetica, shape = box, width = 4, height = 1]
+
+        node1[label = '@@1']
+        node2[label = '@@2']
+
+        blank1[label = '', width = 0.01, height = 0.01]
+        excluded1[label = '@@3']
+
+        node1 -> blank1[dir = none];
+        blank1 -> excluded1[minlen = 2];
+        blank1 -> node2;
+     { rank = same; blank1 excluded1 }
+
+     node3[label = '@@4']
+
+     blank2[label = '', width = 0.01, height = 0.01]
+        excluded2[label = '@@5']
+
+        node2 -> blank2[dir = none];
+        blank2 -> excluded2[minlen = 2];
+        blank2 -> node3;
+     { rank = same; blank2 excluded2 }
+
+      node4[label = '@@6']
+
+     blank3[label = '', width = 0.01, height = 0.01]
+        excluded3[label = '@@7']
+
+        node3 -> blank3[dir = none];
+        blank3 -> excluded3[minlen = 2];
+        blank3 -> node4;
+     { rank = same; blank3 excluded3 }
+
+     node5[label = '@@8']
+
+     blank4[label = '', width = 0.01, height = 0.01]
+        excluded4[label = '@@9']
+
+        node4 -> blank4[dir = none];
+        blank4 -> excluded4[minlen = 2];
+        blank4 -> node5;
+     { rank = same; blank4 excluded4 }
+
+        node6[label = '@@10']
+
+     blank5[label = '', width = 0.01, height = 0.01]
+        excluded5[label = '@@11']
+
+        node5 -> blank5[dir = none];
+        blank5 -> excluded5[minlen = 2];
+        blank5 -> node6;
+     { rank = same; blank5 excluded5 }
+
+           }
+     [1]: 'Patients in the HF LT Registry (n = ",
+  formatC(as.numeric(flow[1, 2]), big.mark = ",", format = "f", digits = 0), ")'
+     [2]: 'Patients hospitalized for AHF (n = ",
+  formatC(as.numeric(flow[2, 2]), big.mark = ",", format = "f", digits = 0), ")'
+      [3]: 'Ambulatory CHF patients (n = ",
+  formatC(as.numeric(flow[1, 2]) - as.numeric(flow[2, 2]), big.mark = ",", format = "f", digits = 0), ")'
+      [4]: 'Patients with data on LVEF (n = ",
+  formatC(as.numeric(flow[3, 2]), big.mark = ",", format = "f", digits = 0), ")'
+      [5]: 'Patients with no data on LVEF (n = ",
+  formatC(as.numeric(flow[2, 2]) - as.numeric(flow[3, 2]), big.mark = ",", format = "f", digits = 0), ")'
+      [6]: 'Patients with data on NCC (n = ",
+  formatC(as.numeric(flow[4, 2]), big.mark = ",", format = "f", digits = 0), ")\\nUsed for outcomes in-hospital mortality, LOS'
+      [7]: 'Patients with no data on NCC (n = ",
+  formatC(as.numeric(flow[3, 2]) - as.numeric(flow[4, 2]), big.mark = ",", format = "f", digits = 0), ")'
+      [8]: 'Patients discharged alive (n = ",
+  formatC(as.numeric(flow[5, 2]), big.mark = ",", format = "f", digits = 0), ")\\nUsed for outcome NYHA class at discharge'
+      [9]: 'Patients died in-hospital (n = ",
+  formatC(as.numeric(flow[4, 2]) - as.numeric(flow[5, 2]), big.mark = ",", format = "f", digits = 0), ")'
+      [10]: 'Patients with long-term follow-up (n = ",
+  formatC(as.numeric(flow[6, 2]), big.mark = ",", format = "f", digits = 0), ")\\nUsed for long-term outcomes'
+      [11]: 'Patients without long-term follow-up (n = ",
+  formatC(as.numeric(flow[5, 2]) - as.numeric(flow[6, 2]), big.mark = ",", format = "f", digits = 0), ")'
+      "
+))
+
+
+```
