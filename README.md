@@ -1,4 +1,4 @@
-# R code for the project Prognostic impact of comorbidity burden in patients hospitalized for AHF and stratified by EF categories: rEF, mrEF and pEF
+# R code for the project Comprehensive Characterization of Non-Cardiac Comorbidities in Acute Heart Failure- an analysis of ESC-HFA EORP Heart Failure Long-Term Registry
 
 The aim of this R code is to be transparent and document the data handling 
 and statistical analyses performed for the project.
